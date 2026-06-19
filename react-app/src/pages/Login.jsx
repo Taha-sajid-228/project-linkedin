@@ -9,12 +9,15 @@ function Login() {
   });
 
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setMessage("");
+    setIsError(false);
   };
 
   const handleLogin = async (e) => {
@@ -22,18 +25,23 @@ function Login() {
 
     try {
       const loginData = new FormData();
-loginData.append("email", formData.email);
-loginData.append("password", formData.password);
+      loginData.append("email", formData.email);
+      loginData.append("password", formData.password);
 
-const response = await API.post("/login", loginData);
+      const response = await API.post("/login", loginData);
 
       if (response.data.access_token) {
         localStorage.setItem("token", response.data.access_token);
+      } else if (response.data.user) {
+        localStorage.setItem("token", JSON.stringify(response.data.user));
       }
 
+      setIsError(false);
       setMessage("Login successful!");
-    } catch {
-      setMessage("Invalid email or password.");
+    } catch (error) {
+      console.log(error);
+      setIsError(true);
+      setMessage(error.response?.data?.detail || "Invalid email or password.");
     }
   };
 
@@ -83,7 +91,11 @@ const response = await API.post("/login", loginData);
         </form>
 
         {message && (
-          <p className="text-center text-red-500 mt-4">
+          <p
+            className={`text-center mt-4 ${
+              isError ? "text-red-500" : "text-green-600"
+            }`}
+          >
             {message}
           </p>
         )}

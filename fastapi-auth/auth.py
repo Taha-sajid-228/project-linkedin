@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Form, HTTPException, Depends
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+import re
+import os
+from datetime import datetime, timedelta
+from jose import jwt
 
 from database import get_db
 from models import User
@@ -8,6 +12,20 @@ from models import User
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# JWT configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-signing")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 @router.post("/register")
@@ -21,15 +39,18 @@ def register(
     # Input Validation
     # ==========================
 
+    username_stripped = username.strip()
+    email_stripped = email.strip()
+
     # Username validation
-    if len(username.strip()) < 6:
+    if len(username_stripped) < 6:
         raise HTTPException(
             status_code=400,
             detail="Username must be at least 6 characters long."
         )
 
     # Email validation
-    if "@" not in email or not email.endswith(".com"):
+    if not EMAIL_REGEX.match(email_stripped):
         raise HTTPException(
             status_code=400,
             detail="Enter a valid email address."
@@ -43,9 +64,19 @@ def register(
         )
 
     # ==========================
-    # Check if user already exists
+    # Check if username already exists
     # ==========================
-    existing_user = db.query(User).filter(User.email == email).first()
+    existing_username = db.query(User).filter(User.username == username_stripped).first()
+    if existing_username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username is already taken."
+        )
+
+    # ==========================
+    # Check if email already exists
+    # ==========================
+    existing_user = db.query(User).filter(User.email == email_stripped).first()
 
     if existing_user:
         raise HTTPException(
@@ -62,8 +93,8 @@ def register(
     # Create New User
     # ==========================
     new_user = User(
-        username=username,
-        email=email,
+        username=username_stripped,
+        email=email_stripped,
         password=hashed_password
     )
 
@@ -87,7 +118,8 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == email).first()
+    email_stripped = email.strip()
+    user = db.query(User).filter(User.email == email_stripped).first()
 
     if not user:
         raise HTTPException(
@@ -101,8 +133,13 @@ def login(
             detail="Invalid password."
         )
 
+    # Generate JWT access token
+    access_token = create_access_token(data={"sub": user.email, "id": user.id})
+
     return {
         "message": "Login successful.",
+        "access_token": access_token,
+        "token_type": "bearer",
         "user": {
             "id": user.id,
             "username": user.username,

@@ -25,15 +25,16 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    if (!formData.email.includes("@") || !formData.email.endsWith(".com")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
       setIsError(true);
-      setMessage("Email must contain @ and end with .com");
+      setMessage("Please enter a valid email address.");
       return;
     }
 
-    if (formData.username.length <= 5) {
+    if (formData.username.trim().length < 6) {
       setIsError(true);
-      setMessage("Username must be greater than 5 characters.");
+      setMessage("Username must be at least 6 characters long.");
       return;
     }
 
@@ -43,33 +44,13 @@ function Register() {
       return;
     }
 
-   try {
-  const registerData = new FormData();
-  registerData.append("username", formData.username);
-  registerData.append("email", formData.email);
-  registerData.append("password", formData.password);
-
-  await API.post("/register", registerData);
-
-  setIsError(false);
-  setMessage("Registration successful!");
-
-  setFormData({
-    username: "",
-    email: "",
-    password: "",
-  });
-} catch {
-  setIsError(true);
-  setMessage("Registration failed.");
-}
- try {
+    try {
       const registerData = new FormData();
-registerData.append("username", formData.username);
-registerData.append("email", formData.email);
-registerData.append("password", formData.password);
+      registerData.append("username", formData.username.trim());
+      registerData.append("email", formData.email.trim());
+      registerData.append("password", formData.password);
 
-await API.post("/register", registerData);
+      await API.post("/register", registerData);
 
       setIsError(false);
       setMessage("Registration successful!");
@@ -79,11 +60,11 @@ await API.post("/register", registerData);
         email: "",
         password: "",
       });
-   } catch (error) {
-  console.log(error);
-  setIsError(true);
-  setMessage(error.response?.data?.detail || "Registration failed.");
-}
+    } catch (error) {
+      console.log(error);
+      setIsError(true);
+      setMessage(error.response?.data?.detail || "Registration failed.");
+    }
   };
 
   return (

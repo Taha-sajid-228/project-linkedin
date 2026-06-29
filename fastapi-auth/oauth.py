@@ -141,6 +141,8 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     if not email:
         return redirect_with_error("/register", "GitHub email not found.")
 
+    email = email.strip().lower()
+
     flow = request.session.get("oauth_flow")
 
     provider_id = str(github_user.get("id"))
@@ -152,6 +154,12 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     if flow == "login":
         if not user:
             return redirect_with_error("/login", "Please register first.")
+
+        if user.provider != "github":
+            return redirect_with_error(
+                "/login",
+                f"This email is registered with {user.provider}. Please continue with {user.provider}."
+            )
 
         access_token = create_access_token(
             data={
@@ -167,7 +175,10 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
 
     if flow == "register":
         if user:
-            return redirect_with_error("/register", "Email already exists. Please login.")
+            return redirect_with_error(
+                "/register",
+                f"This email is already registered with {user.provider}. Please continue with {user.provider}."
+            )
 
         save_pending_user_to_session(
             request=request,
@@ -219,6 +230,8 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     if not email:
         return redirect_with_error("/register", "Google email not found.")
 
+    email = email.strip().lower()
+
     flow = request.session.get("oauth_flow")
 
     user = db.query(User).filter(User.email == email).first()
@@ -226,6 +239,12 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     if flow == "login":
         if not user:
             return redirect_with_error("/login", "Please register first.")
+
+        if user.provider != "google":
+            return redirect_with_error(
+                "/login",
+                f"This email is registered with {user.provider}. Please continue with {user.provider}."
+            )
 
         access_token = create_access_token(
             data={
@@ -241,7 +260,10 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
     if flow == "register":
         if user:
-            return redirect_with_error("/register", "Email already exists. Please login.")
+            return redirect_with_error(
+                "/register",
+                f"This email is already registered with {user.provider}. Please continue with {user.provider}."
+            )
 
         save_pending_user_to_session(
             request=request,
@@ -299,7 +321,10 @@ def oauth_complete_registration(
 
     existing_email = db.query(User).filter(User.email == pending_user["email"]).first()
     if existing_email:
-        raise HTTPException(status_code=400, detail="Email already exists.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Email already exists with {existing_email.provider}."
+        )
 
     new_user = User(
         name=name_stripped,

@@ -87,6 +87,12 @@ def register(
     existing_user = db.query(User).filter(User.email == email_stripped).first()
 
     if existing_user:
+        if existing_user.provider != "email":
+            raise HTTPException(
+                status_code=400,
+                detail=f"This email is already registered with {existing_user.provider}. Please continue with {existing_user.provider}."
+            )
+
         if existing_user.is_verified:
             raise HTTPException(status_code=400, detail="User already exists.")
 
@@ -326,6 +332,12 @@ def login(
 
     if not user:
         raise HTTPException(status_code=400, detail="User not found.")
+
+    if user.provider != "email":
+        raise HTTPException(
+            status_code=400,
+            detail=f"This account uses {user.provider} login. Please continue with {user.provider}."
+        )
 
     if not user.password or not pwd_context.verify(password, user.password):
         raise HTTPException(status_code=400, detail="Invalid password.")

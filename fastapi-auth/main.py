@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 import traceback
 from datetime import datetime
-
+from posts import router as posts_router
 from auth import router as auth_router
 from oauth import router as oauth_router
 from database import engine, Base
@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine)
-
+app.include_router(posts_router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

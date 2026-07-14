@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
@@ -30,7 +29,6 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-# Small user object used inside posts
 class PostAuthorResponse(BaseModel):
     id: int
     username: str
@@ -53,6 +51,47 @@ class PostMediaResponse(BaseModel):
         from_attributes = True
 
 
+# ==========================
+# Comment Schemas
+# ==========================
+
+class CommentCreate(BaseModel):
+    content: str
+
+
+class CommentUpdate(BaseModel):
+    content: str
+
+
+class CommentAuthorResponse(BaseModel):
+    id: int
+    username: str
+    profile_picture: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CommentResponse(BaseModel):
+    id: int
+    content: str
+
+    author_id: int
+    post_id: int
+
+    created_at: datetime
+    updated_at: datetime
+
+    author: CommentAuthorResponse
+
+    class Config:
+        from_attributes = True
+
+
+# ==========================
+# Post Schemas
+# ==========================
+
 class PostCreate(BaseModel):
     content: Optional[str] = None
     original_post_id: Optional[int] = None
@@ -74,11 +113,20 @@ class PostResponse(BaseModel):
     is_deleted: bool
 
     original_post_id: Optional[int] = None
+    original_post: Optional["PostResponse"] = None
 
     created_at: datetime
     updated_at: datetime
 
     media: List[PostMediaResponse] = Field(default_factory=list)
 
+    likes_count: int = 0
+    is_liked_by_me: bool = False
+
+    comments_count: int = 0
+
     class Config:
         from_attributes = True
+
+
+PostResponse.model_rebuild()

@@ -7,6 +7,7 @@ import os
 import traceback
 from datetime import datetime
 from posts import router as posts_router
+from comments import router as comments_router
 from auth import router as auth_router
 from oauth import router as oauth_router
 from database import engine, Base
@@ -25,7 +26,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5173"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +34,7 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 app.include_router(posts_router)
+app.include_router(comments_router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

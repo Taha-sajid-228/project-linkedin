@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, HTTPException, Depends
+from fastapi import APIRouter, Form, HTTPException, Depends, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from jose import jwt
 
 from database import get_db
 from models import User
+from services.s3_service import upload_file_to_s3
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -404,9 +405,72 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "email": current_user.email,
         "role": current_user.role,
+        "bio": current_user.bio,
         "profile_picture": current_user.profile_picture,
         "provider": current_user.provider,
         "is_verified": current_user.is_verified
+    }
+
+
+@router.put("/me/bio")
+def update_my_bio(
+    bio: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.bio = bio
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "message": "Bio updated successfully.",
+        "bio": current_user.bio
+    }
+
+
+@router.put("/me/profile-picture")
+def upload_profile_picture(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    image_url = upload_file_to_s3(
+        file=file,
+        folder="profile-pictures",
+        image_only=True
+    )
+
+    current_user.profile_picture = image_url
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "message": "Profile picture updated successfully.",
+        "profile_picture": current_user.profile_picture
+    }
+
+
+@router.get("/users/{user_id}")
+def get_user_profile(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    return {
+        "id": user.id,
+        "name": user.name,
+        "username": user.username,
+        "bio": user.bio,
+        "profile_picture": user.profile_picture,
     }
 
 
@@ -421,3 +485,6 @@ def admin_only_route(current_user: User = Depends(get_admin_user)):
             "role": current_user.role
         }
     }
+
+
+   

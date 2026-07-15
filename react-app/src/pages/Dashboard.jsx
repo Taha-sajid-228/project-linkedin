@@ -41,6 +41,9 @@ function Dashboard() {
     handleUpdatePost,
     handleLogout,
     goToProfile,
+    handleUnarchivePost,
+    hasChanges,
+    isSaving,
   } = useDashboard();
 
   const handleOpenComments = (postId) => {
@@ -48,7 +51,7 @@ function Dashboard() {
   };
 
   const handleOpenLikes = (postId) => {
-    navigate(`/posts/${postId}?view=likes`);
+    navigate(`/posts/${postId}/likes`);
   };
 
   if (loading) {
@@ -92,10 +95,13 @@ function Dashboard() {
             onUpdatePost={handleUpdatePost}
             onDeletePost={handleDeletePost}
             onArchivePost={handleArchivePost}
+            onUnarchivePost={handleUnarchivePost}
             onLikePost={handleLikePost}
             onSharePost={handleSharePost}
             onOpenComments={handleOpenComments}
             onOpenLikes={handleOpenLikes}
+            hasChanges={hasChanges}
+            isSaving={isSaving}
           />
         </section>
 

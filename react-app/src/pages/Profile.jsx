@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
 import API from "../api/axios";
+import PostCard from "../components/PostCard";
 
 function Profile() {
   const navigate = useNavigate();
@@ -8,55 +11,44 @@ function Profile() {
   const isMyProfile = !userId;
 
   const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  });
+
   const [myPosts, setMyPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Bio state
   const [editingBio, setEditingBio] = useState(false);
   const [bio, setBio] = useState("");
+  const [originalBio, setOriginalBio] = useState("");
+  const [isSavingBio, setIsSavingBio] = useState(false);
+
+  const hasChangesBio = (bio || "").trim() !== (originalBio || "").trim();
+
+  // Post edit state
   const [editingPostId, setEditingPostId] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [originalContent, setOriginalContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const renderMedia = (media = []) => {
-    if (!media || media.length === 0) return null;
-
-    return (
-      <div className="space-y-3 mt-3">
-        {media.map((file) => (
-          <div key={file.id} className="relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center">
-            {file.file_type === "image" ? (
-              <img
-                src={file.file_url}
-                alt="post media"
-                className="w-full max-h-[500px] object-contain select-none"
-              />
-            ) : file.file_type === "video" ? (
-              <video
-                src={file.file_url}
-                controls
-                className="w-full max-h-[500px] rounded-2xl"
-              />
-            ) : (
-              <a
-                href={file.file_url}
-                target="_blank"
-                rel="noreferrer"
-                className="block text-white underline text-xs font-bold p-6 text-center"
-              >
-                View attached file
-              </a>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const hasChanges = (editContent || "").trim() !== (originalContent || "").trim();
 
   const fetchProfileData = useCallback(async () => {
     try {
       setLoading(true);
 
+      const meRes = await API.get("/me");
+      setCurrentUser(meRes.data);
+      localStorage.setItem("user", JSON.stringify(meRes.data));
+
       const userResponse = isMyProfile
-        ? await API.get("/me")
+        ? meRes
         : await API.get(`/users/${userId}`);
 
       const postsResponse = isMyProfile
@@ -68,7 +60,7 @@ function Profile() {
       setMyPosts(postsResponse.data);
     } catch (error) {
       console.error("Failed to fetch profile:", error);
-      alert(error.response?.data?.detail || "Failed to load profile");
+      toast.error(error.response?.data?.detail || "Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -83,7 +75,7 @@ function Profile() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Only image files are allowed");
+      toast.error("Only image files are allowed");
       e.target.value = "";
       return;
     }
@@ -102,8 +94,9 @@ function Profile() {
         ...prevUser,
         profile_picture: res.data.profile_picture,
       }));
+      toast.success("Profile picture updated successfully.");
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to upload profile picture");
+      toast.error(error.response?.data?.detail || "Failed to upload profile picture");
     } finally {
       setUploadingPhoto(false);
       e.target.value = "";
@@ -111,6 +104,13 @@ function Profile() {
   };
 
   const handleBioUpdate = async () => {
+    if ((bio || "").trim() === (originalBio || "").trim()) {
+      setEditingBio(false);
+      return;
+    }
+
+    setIsSavingBio(true);
+
     const formData = new FormData();
     formData.append("bio", bio);
 
@@ -123,61 +123,179 @@ function Profile() {
         ...prev,
         bio: res.data.bio,
       }));
-
+      setOriginalBio(res.data.bio || "");
       setEditingBio(false);
+      toast.success("Biography updated successfully.");
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to update bio");
+      toast.error(error.response?.data?.detail || "Failed to update bio");
+    } finally {
+      setIsSavingBio(false);
     }
   };
 
-  const handleUnarchivePost = async (postId) => {
+  const handleUnarchivePost = (postId) => {
+    Swal.fire({
+      title: "Restore this post?",
+      text: "The post will become visible in the feed again.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Restore",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await API.patch(`/posts/${postId}/unarchive`);
+          toast.success("Post restored successfully.");
+          await fetchProfileData();
+        } catch (error) {
+          toast.error(error.response?.data?.detail || "Failed to restore the post.");
+        }
+      }
+    });
+  };
+
+  const handleArchivePost = (postId) => {
+    Swal.fire({
+      title: "Archive this post?",
+      text: "The post will be hidden from the feed but will remain available on your profile.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Archive",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await API.patch(`/posts/${postId}/archive`);
+          toast.success("Post archived successfully.");
+          await fetchProfileData();
+        } catch (error) {
+          toast.error(error.response?.data?.detail || "Failed to archive the post.");
+        }
+      }
+    });
+  };
+
+  const handleDeletePost = (postId) => {
+    Swal.fire({
+      title: "Delete this post?",
+      text: "This post will be removed from your profile and feed.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await API.delete(`/posts/${postId}`);
+          toast.success("Post deleted successfully.");
+          await fetchProfileData();
+        } catch (error) {
+          toast.error(error.response?.data?.detail || "Failed to delete the post.");
+        }
+      }
+    });
+  };
+
+  const handleLikePost = async (postId) => {
     try {
-      await API.patch(`/posts/${postId}/unarchive`);
-      await fetchProfileData();
+      const response = await API.post(`/posts/${postId}/like`);
+
+      setMyPosts((previousPosts) =>
+        previousPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likes_count: response.data.likes_count,
+                is_liked_by_me: response.data.liked,
+              }
+            : post
+        )
+      );
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to unarchive post");
+      console.error("Failed to like post:", error);
+      toast.error(error.response?.data?.detail || "Failed to like post");
     }
   };
 
-  const handleArchivePost = async (postId) => {
+  const handleSharePost = async (postId) => {
     try {
-      await API.patch(`/posts/${postId}/archive`);
+      const formData = new FormData();
+      formData.append("original_post_id", postId);
+
+      await API.post("/posts/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success("Post shared successfully.");
       await fetchProfileData();
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to archive post");
-    }
-  };
-
-  const handleDeletePost = async (postId) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-
-    try {
-      await API.delete(`/posts/${postId}`);
-      await fetchProfileData();
-    } catch (error) {
-      alert(error.response?.data?.detail || "Failed to delete post");
+      console.error("Failed to share post:", error);
+      toast.error(error.response?.data?.detail || "Failed to share post");
     }
   };
 
   const startEditing = (post) => {
     setEditingPostId(post.id);
     setEditContent(post.content || "");
+    setOriginalContent(post.content || "");
   };
 
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditContent("");
+    setOriginalContent("");
   };
 
   const handleUpdatePost = async (postId) => {
-    try {
-      await API.put(`/posts/${postId}`, { content: editContent });
+    if ((editContent || "").trim() === (originalContent || "").trim()) {
+      cancelEditing();
+      return;
+    }
 
+    if (!editContent.trim()) {
+      toast.error("Post content cannot be empty.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await API.put(`/posts/${postId}`, { content: editContent.trim() });
+
+      toast.success("Post updated successfully.");
       setEditingPostId(null);
       setEditContent("");
+      setOriginalContent("");
       await fetchProfileData();
     } catch (error) {
-      alert(error.response?.data?.detail || "Failed to update post");
+      toast.error(error.response?.data?.detail || "Failed to update post");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -185,7 +303,7 @@ function Profile() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans antialiased">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-650 border-indigo-600 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent"></div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Loading Profile...</p>
         </div>
       </div>
@@ -209,7 +327,7 @@ function Profile() {
 
           <button
             onClick={() => navigate("/dashboard")}
-            className="bg-slate-50 border border-slate-205 border-slate-200 hover:bg-slate-100 text-slate-700 hover:text-slate-900 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95"
+            className="bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 hover:text-slate-900 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95"
           >
             Back to Feed
           </button>
@@ -237,7 +355,7 @@ function Profile() {
                   </div>
                 )}
                 {isMyProfile && (
-                  <label className="absolute -bottom-2 -right-2 bg-indigo-600 hover:bg-indigo-755 hover:bg-indigo-700 text-white p-2.5 rounded-xl border-2 border-white shadow-md cursor-pointer transition-all duration-200 active:scale-95 flex items-center justify-center" title="Update Profile Picture">
+                  <label className="absolute -bottom-2 -right-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl border-2 border-white shadow-md cursor-pointer transition-all duration-200 active:scale-95 flex items-center justify-center" title="Update Profile Picture">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -286,16 +404,19 @@ function Profile() {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={3}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-650 focus:border-indigo-655 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all duration-200 resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all duration-200 resize-none"
                   placeholder="Tell us about yourself..."
                 />
 
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={handleBioUpdate}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    disabled={!hasChangesBio || isSavingBio}
+                    className={`bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs ${
+                      (!hasChangesBio || isSavingBio) ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
-                    Save Bio
+                    {isSavingBio ? "Saving..." : "Save Bio"}
                   </button>
 
                   <button
@@ -317,7 +438,11 @@ function Profile() {
 
                 {isMyProfile && (
                   <button
-                    onClick={() => setEditingBio(true)}
+                    onClick={() => {
+                      setOriginalBio(user?.bio || "");
+                      setBio(user?.bio || "");
+                      setEditingBio(true);
+                    }}
                     className="text-xs text-indigo-600 font-bold mt-3.5 hover:text-indigo-700 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -360,162 +485,28 @@ function Profile() {
               </p>
             </div>
           ) : (
-            myPosts.map((post) => {
-              const isSharedPost = Boolean(post.original_post);
-
-              return (
-                <article
-                  key={post.id}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm"
-                >
-                  {isSharedPost && (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 w-fit">
-                      <svg className="w-4 h-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 2.1l4 4-4 4" />
-                        <path d="M3 22v-6a4 4 0 0 1 4-4h14" />
-                      </svg>
-                      <span>
-                        {post.author?.name || post.author?.username} shared this post
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                        {new Date(post.created_at).toLocaleString()}
-                      </p>
-
-                      {post.is_archived && (
-                        <span className="inline-block mt-1.5 text-[9px] bg-yellow-50 text-yellow-605 text-yellow-600 border border-yellow-100 px-2.5 py-0.5 rounded-lg font-bold uppercase tracking-wider">
-                          Archived
-                        </span>
-                      )}
-                    </div>
-
-                    {isMyProfile && (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => startEditing(post)}
-                          className="bg-slate-50 border border-slate-150 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-                        >
-                          Edit
-                        </button>
-
-                        {post.is_archived ? (
-                          <button
-                            type="button"
-                            onClick={() => handleUnarchivePost(post.id)}
-                            className="bg-slate-50 border border-slate-150 hover:bg-emerald-50 hover:text-emerald-650 hover:text-emerald-600 hover:border-emerald-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-                          >
-                            Unarchive
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleArchivePost(post.id)}
-                            className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-605 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-                          >
-                            Archive
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePost(post.id)}
-                          className="bg-slate-50 border border-slate-150 hover:bg-red-50 hover:text-red-655 hover:text-red-600 hover:border-red-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {editingPostId === post.id ? (
-                    <div className="mb-4">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        rows="3"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-650 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-xs md:text-sm text-slate-800 outline-none resize-none transition-all"
-                      />
-
-                      <div className="flex gap-2 mt-2.5">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdatePost(post.id)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95"
-                        >
-                          Save Changes
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={cancelEditing}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-705 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    post.content && (
-                      <p className="text-sm text-slate-800 leading-relaxed font-medium mb-4 whitespace-pre-line">
-                        {post.content}
-                      </p>
-                    )
-                  )}
-
-                  {isSharedPost ? (
-                    <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors duration-200">
-                      <div className="flex items-center gap-3 mb-3.5 group">
-                        {post.original_post?.author?.profile_picture ? (
-                          <img
-                            src={post.original_post.author.profile_picture}
-                            alt={post.original_post.author.username}
-                            className="h-8.5 w-8.5 rounded-xl object-cover border border-slate-100 transition-all duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white font-bold flex items-center justify-center text-[10px] shadow-2xs transition-all duration-300 group-hover:scale-105">
-                            {post.original_post?.author?.username
-                              ?.substring(0, 2)
-                              .toUpperCase() || "U"}
-                          </div>
-                        )}
-
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-650 transition-colors leading-tight">
-                            {post.original_post?.author?.name ||
-                              post.original_post?.author?.username ||
-                              "Unknown User"}
-                          </h4>
-
-                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                            @{post.original_post?.author?.username} •{" "}
-                            {post.original_post?.created_at
-                              ? new Date(
-                                post.original_post.created_at
-                              ).toLocaleString()
-                              : ""}
-                          </p>
-                        </div>
-                      </div>
-
-                      {post.original_post?.content && (
-                        <p className="text-sm text-slate-700 leading-relaxed font-medium mb-4 whitespace-pre-line">
-                          {post.original_post.content}
-                        </p>
-                      )}
-
-                      {renderMedia(post.original_post?.media || [])}
-                    </div>
-                  ) : (
-                    renderMedia(post.media || [])
-                  )}
-                </article>
-              );
-            })
+            myPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                user={currentUser}
+                editingPostId={editingPostId}
+                editContent={editContent}
+                setEditContent={setEditContent}
+                onStartEditing={startEditing}
+                onCancelEditing={cancelEditing}
+                onUpdatePost={handleUpdatePost}
+                onDeletePost={handleDeletePost}
+                onArchivePost={handleArchivePost}
+                onUnarchivePost={handleUnarchivePost}
+                onLikePost={handleLikePost}
+                onSharePost={handleSharePost}
+                onOpenComments={(postId) => navigate(`/posts/${postId}?view=comments`)}
+                onOpenLikes={(postId) => navigate(`/posts/${postId}/likes`)}
+                hasChanges={hasChanges}
+                isSaving={isSaving}
+              />
+            ))
           )}
         </div>
       </main>

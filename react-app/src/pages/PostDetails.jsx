@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -11,13 +10,15 @@ import {
   useSearchParams,
 } from "react-router-dom";
 
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
 import API from "../api/axios";
 
 import Loader from "../components/Loader";
 import ErrorMessage from "../components/ErrorMessage";
 import Comments from "../components/Comments";
 
-import PostCard from "../features/posts/PostCard";
+import PostCard from "../components/PostCard";
 
 function PostDetails() {
   const { postId } = useParams();
@@ -35,6 +36,10 @@ function PostDetails() {
 
   const [editingPostId, setEditingPostId] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [originalContent, setOriginalContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const hasChanges = (editContent || "").trim() !== (originalContent || "").trim();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -117,8 +122,7 @@ function PostDetails() {
       }
     } catch (error) {
       console.error("Failed to like post:", error);
-
-      alert(
+      toast.error(
         error.response?.data?.detail ||
           "Failed to like post"
       );
@@ -140,11 +144,10 @@ function PostDetails() {
         },
       });
 
-      alert("Post shared successfully.");
+      toast.success("Post shared successfully.");
     } catch (error) {
       console.error("Failed to share post:", error);
-
-      alert(
+      toast.error(
         error.response?.data?.detail ||
           "Failed to share post"
       );
@@ -154,20 +157,28 @@ function PostDetails() {
   const startEditing = (selectedPost) => {
     setEditingPostId(selectedPost.id);
     setEditContent(selectedPost.content || "");
+    setOriginalContent(selectedPost.content || "");
   };
 
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditContent("");
+    setOriginalContent("");
   };
 
   const handleUpdatePost = async (selectedPostId) => {
+    if ((editContent || "").trim() === (originalContent || "").trim()) {
+      cancelEditing();
+      return;
+    }
+
     if (!editContent.trim()) {
-      alert("Post content cannot be empty.");
+      toast.error("Post content cannot be empty.");
       return;
     }
 
     try {
+      setIsSaving(true);
       const response = await API.put(
         `/posts/${selectedPostId}`,
         {
@@ -175,55 +186,119 @@ function PostDetails() {
         }
       );
 
+      toast.success("Post updated successfully.");
       setPost(response.data);
       setEditingPostId(null);
       setEditContent("");
+      setOriginalContent("");
     } catch (error) {
       console.error("Failed to update post:", error);
-
-      alert(
+      toast.error(
         error.response?.data?.detail ||
           "Failed to update post"
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDeletePost = async (selectedPostId) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this post?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await API.delete(`/posts/${selectedPostId}`);
-
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Failed to delete post:", error);
-
-      alert(
-        error.response?.data?.detail ||
-          "Failed to delete post"
-      );
-    }
+  const handleDeletePost = (selectedPostId) => {
+    Swal.fire({
+      title: "Delete this post?",
+      text: "This post will be removed from your profile and feed.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await API.delete(`/posts/${selectedPostId}`);
+          toast.success("Post deleted successfully.");
+          navigate("/dashboard");
+        } catch (error) {
+          console.error("Failed to delete post:", error);
+          toast.error(
+            error.response?.data?.detail ||
+              "Failed to delete the post."
+          );
+        }
+      }
+    });
   };
 
-  const handleArchivePost = async (selectedPostId) => {
-    try {
-      await API.patch(
-        `/posts/${selectedPostId}/archive`
-      );
+  const handleArchivePost = (selectedPostId) => {
+    Swal.fire({
+      title: "Archive this post?",
+      text: "The post will be hidden from the feed but will remain available on your profile.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Archive",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await API.patch(`/posts/${selectedPostId}/archive`);
+          toast.success("Post archived successfully.");
+          navigate("/dashboard");
+        } catch (error) {
+          console.error("Failed to archive post:", error);
+          toast.error(
+            error.response?.data?.detail ||
+              "Failed to archive the post."
+          );
+        }
+      }
+    });
+  };
 
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Failed to archive post:", error);
-
-      alert(
-        error.response?.data?.detail ||
-          "Failed to archive post"
-      );
-    }
+  const handleUnarchivePost = (selectedPostId) => {
+    Swal.fire({
+      title: "Restore this post?",
+      text: "The post will become visible in the feed again.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Restore",
+      cancelButtonText: "Cancel",
+      customClass: {
+        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
+        title: "text-lg font-black text-slate-900",
+        htmlContainer: "text-sm text-slate-500",
+        confirmButton: "bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
+      },
+      buttonsStyling: false,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await API.patch(`/posts/${selectedPostId}/unarchive`);
+          toast.success("Post restored successfully.");
+          setPost(response.data);
+        } catch (error) {
+          console.error("Failed to restore post:", error);
+          toast.error(
+            error.response?.data?.detail ||
+              "Failed to restore the post."
+          );
+        }
+      }
+    });
   };
 
   const handleCommentAdded = () => {
@@ -241,7 +316,7 @@ function PostDetails() {
         (previousPost.comments_count || 0) - 1,
         0
       ),
-    }));
+      }));
   };
 
   const handleOpenComments = () => {
@@ -249,7 +324,7 @@ function PostDetails() {
   };
 
   const handleOpenLikes = () => {
-    navigate(`/posts/${postId}?view=likes`);
+    navigate(`/posts/${postId}/likes`);
   };
 
   const goToLikedUserProfile = (likedUserId) => {
@@ -295,10 +370,13 @@ function PostDetails() {
           onUpdatePost={handleUpdatePost}
           onDeletePost={handleDeletePost}
           onArchivePost={handleArchivePost}
+          onUnarchivePost={handleUnarchivePost}
           onLikePost={handleLikePost}
           onSharePost={handleSharePost}
           onOpenComments={handleOpenComments}
           onOpenLikes={handleOpenLikes}
+          hasChanges={hasChanges}
+          isSaving={isSaving}
         />
 
         {/* Comments View */}
@@ -384,7 +462,7 @@ function PostDetails() {
                         className="h-11 w-11 rounded-2xl object-cover border border-slate-100 shrink-0"
                       />
                     ) : (
-                      <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+                      <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white font-bold flex items-center justify-center text-sm shrink-0">
                         {likedUser.username
                           ?.substring(0, 2)
                           .toUpperCase() || "U"}

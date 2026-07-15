@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
 import Profile from "./pages/Profile";
 import PostDetails from "./pages/PostDetails";
-import NewLogin from "./pages/NewLogin";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyOtp from "./pages/VerifyOtp";
@@ -12,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
+import LikesList from "./pages/LikesList";
+
+import { Toaster } from "react-hot-toast";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminProtectedRoute from "./routes/AdminProtectedRoute";
@@ -19,8 +20,10 @@ import PublicRoute from "./routes/PublicRoute";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      <Toaster />
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         {/* Current user's profile */}
@@ -49,16 +52,6 @@ function App() {
           element={
             <PublicRoute>
               <Login />
-            </PublicRoute>
-          }
-        />
-
-        {/* Simple Login Page */}
-        <Route
-          path="/new-login"
-          element={
-            <PublicRoute>
-              <NewLogin />
             </PublicRoute>
           }
         />
@@ -117,6 +110,16 @@ function App() {
           }
         />
 
+        {/* Likes list page */}
+        <Route
+          path="/posts/:postId/likes"
+          element={
+            <ProtectedRoute>
+              <LikesList />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin dashboard */}
         <Route
           path="/admin-dashboard"
@@ -131,6 +134,7 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 

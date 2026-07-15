@@ -1,4 +1,4 @@
-import PostCard from "./PostCard";
+import PostCard from "../../components/PostCard";
 
 function PostList({
   posts,
@@ -11,10 +11,13 @@ function PostList({
   onUpdatePost,
   onDeletePost,
   onArchivePost,
+  onUnarchivePost,
   onLikePost,
   onSharePost,
   onOpenComments,
   onOpenLikes,
+  hasChanges,
+  isSaving,
 }) {
   if (posts.length === 0) {
     return (
@@ -41,10 +44,13 @@ function PostList({
           onUpdatePost={onUpdatePost}
           onDeletePost={onDeletePost}
           onArchivePost={onArchivePost}
+          onUnarchivePost={onUnarchivePost}
           onLikePost={onLikePost}
           onSharePost={onSharePost}
           onOpenComments={onOpenComments}
           onOpenLikes={onOpenLikes}
+          hasChanges={hasChanges}
+          isSaving={isSaving}
         />
       ))}
     </div>

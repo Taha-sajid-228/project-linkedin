@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from database import get_db
 from models import Post, User, PostMedia, Like, Comment
-from schemas import PostUpdate, PostResponse
+from schemas import PostUpdate, PostResponse, UserResponse
 from auth import get_current_user
 from services.s3_service import upload_file_to_s3
 
@@ -62,6 +62,11 @@ def add_post_info(post: Post, current_user: User, db: Session):
         Comment.is_deleted == False
     ).count()
 
+    post.reshare_count = db.query(Post).filter(
+        Post.original_post_id == post.id,
+        Post.is_deleted == False
+    ).count()
+
     if post.original_post:
         post.original_post.likes_count = len(post.original_post.likes)
         post.original_post.is_liked_by_me = any(
@@ -71,6 +76,11 @@ def add_post_info(post: Post, current_user: User, db: Session):
         post.original_post.comments_count = db.query(Comment).filter(
             Comment.post_id == post.original_post.id,
             Comment.is_deleted == False
+        ).count()
+
+        post.original_post.reshare_count = db.query(Post).filter(
+            Post.original_post_id == post.original_post.id,
+            Post.is_deleted == False
         ).count()
 
     return post
@@ -246,6 +256,27 @@ def toggle_like(
         "liked": True,
         "likes_count": likes_count
     }
+
+
+@router.get("/{post_id}/likes", response_model=List[UserResponse])
+def get_post_likes(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    post = db.query(Post).filter(
+        Post.id == post_id,
+        Post.is_deleted == False
+    ).first()
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    users = db.query(User).join(Like, Like.user_id == User.id).filter(
+        Like.post_id == post_id
+    ).all()
+
+    return users
 
 
 @router.get("/{post_id}", response_model=PostResponse)

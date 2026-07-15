@@ -3,6 +3,8 @@ function EditPost({
   setEditContent,
   onSave,
   onCancel,
+  hasChanges,
+  isSaving,
 }) {
   return (
     <div className="mb-4 animate-in fade-in-50 duration-150">
@@ -17,9 +19,12 @@ function EditPost({
         <button
           type="button"
           onClick={onSave}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer shadow-2xs"
+          disabled={!hasChanges || isSaving}
+          className={`bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer shadow-2xs ${
+            (!hasChanges || isSaving) ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
-          Save
+          {isSaving ? "Saving..." : "Save"}
         </button>
 
         <button

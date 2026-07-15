@@ -124,6 +124,7 @@ class PostResponse(BaseModel):
     is_liked_by_me: bool = False
 
     comments_count: int = 0
+    reshare_count: int = 0
 
     class Config:
         from_attributes = True

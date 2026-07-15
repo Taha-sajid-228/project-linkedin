@@ -1,9 +1,7 @@
-
 import { useNavigate } from "react-router-dom";
-
-import EditPost from "./EditPost";
-import PostMedia from "./PostMedia";
-import PostActions from "./PostActions";
+import EditPost from "../features/posts/EditPost";
+import PostMedia from "../features/posts/PostMedia";
+import PostActions from "../features/posts/PostActions";
 
 function PostCard({
   post,
@@ -16,10 +14,13 @@ function PostCard({
   onUpdatePost,
   onDeletePost,
   onArchivePost,
+  onUnarchivePost,
   onLikePost,
   onSharePost,
   onOpenComments,
   onOpenLikes,
+  hasChanges,
+  isSaving,
 }) {
   const navigate = useNavigate();
 
@@ -131,6 +132,11 @@ function PostCard({
                 ? new Date(post.created_at).toLocaleString()
                 : ""}
             </p>
+            {post.is_archived && (
+              <span className="inline-block mt-1 text-[9px] bg-yellow-50 text-yellow-600 border border-yellow-100 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">
+                Archived
+              </span>
+            )}
           </div>
         </button>
 
@@ -144,18 +150,28 @@ function PostCard({
               Edit
             </button>
 
-            <button
-              type="button"
-              onClick={() => onArchivePost(post.id)}
-              className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-            >
-              Archive
-            </button>
+            {post.is_archived ? (
+              <button
+                type="button"
+                onClick={() => onUnarchivePost && onUnarchivePost(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-emerald-50 hover:text-emerald-650 hover:text-emerald-600 hover:border-emerald-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onArchivePost && onArchivePost(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-605 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              >
+                Archive
+              </button>
+            )}
 
             <button
               type="button"
               onClick={() => onDeletePost(post.id)}
-              className="bg-slate-50 border border-slate-150 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              className="bg-slate-50 border border-slate-150 hover:bg-red-50 hover:text-red-655 hover:text-red-600 hover:border-red-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
             >
               Delete
             </button>
@@ -169,6 +185,8 @@ function PostCard({
           setEditContent={setEditContent}
           onSave={() => onUpdatePost(post.id)}
           onCancel={onCancelEditing}
+          hasChanges={hasChanges}
+          isSaving={isSaving}
         />
       ) : (
         post.content && (
@@ -195,7 +213,7 @@ function PostCard({
                 className="h-8.5 w-8.5 rounded-xl object-cover border border-slate-100 transition-all duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-[10px] shadow-2xs transition-all duration-300 group-hover:scale-105">
+              <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white font-bold flex items-center justify-center text-[10px] shadow-2xs transition-all duration-300 group-hover:scale-105">
                 {post.original_post?.author?.username
                   ?.substring(0, 2)
                   .toUpperCase() || "U"}
@@ -203,7 +221,7 @@ function PostCard({
             )}
 
             <div>
-              <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-650 transition-colors leading-tight">
                 {post.original_post?.author?.name ||
                   post.original_post?.author?.username ||
                   "Unknown User"}
@@ -247,7 +265,7 @@ function PostCard({
           onClick={handleOpenPostComments}
           className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
         >
-          {post.comments_count || 0} comments • 0 shares
+          {post.comments_count || 0} comments • {post.reshare_count || 0} shares
         </button>
       </div>
 
@@ -262,4 +280,3 @@ function PostCard({
 }
 
 export default PostCard;
-

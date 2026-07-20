@@ -12,6 +12,7 @@ from posts import router as posts_router
 from comments import router as comments_router
 from auth import router as auth_router
 from oauth import router as oauth_router
+from follows import router as follows_router
 from database import engine, Base
 
 import models
@@ -49,8 +50,10 @@ app.add_middleware(
         "https://project-linkedin-git-main-taha-sajid-228s-projects.vercel.app",
         "https://project-linkedin-three.vercel.app",
     ],
+
     # Allows other Vercel preview deployment URLs
     allow_origin_regex=r"https://.*\.vercel\.app",
+
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,6 +69,7 @@ app.include_router(auth_router)
 app.include_router(oauth_router)
 app.include_router(posts_router)
 app.include_router(comments_router)
+app.include_router(follows_router)
 
 
 # Basic health-check route
@@ -86,7 +90,10 @@ def health_check():
 
 # Global exception handler
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(
+    request: Request,
+    exc: Exception,
+):
     err_msg = (
         f"\n--- Exception at {datetime.now()} ---\n"
         + "".join(
@@ -98,7 +105,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         )
     )
 
-    with open("error.log", "a", encoding="utf-8") as file:
+    with open(
+        "error.log",
+        "a",
+        encoding="utf-8",
+    ) as file:
         file.write(err_msg)
 
     print(err_msg)
@@ -117,9 +128,20 @@ def main():
 
     uvicorn.run(
         "main:app",
-        host=os.getenv("HOST", "0.0.0.0"),
-        port=int(os.getenv("PORT", "8000")),
-        reload=os.getenv("RELOAD", "false").lower() == "true",
+        host=os.getenv(
+            "HOST",
+            "0.0.0.0",
+        ),
+        port=int(
+            os.getenv(
+                "PORT",
+                "8000",
+            )
+        ),
+        reload=os.getenv(
+            "RELOAD",
+            "false",
+        ).lower() == "true",
     )
 
 

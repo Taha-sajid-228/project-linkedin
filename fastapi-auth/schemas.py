@@ -187,4 +187,12 @@ class PostResponse(BaseModel):
         from_attributes = True
 
 
+class FeedResponse(BaseModel):
+    posts: List[PostResponse] = Field(default_factory=list)
+    page: int
+    limit: int
+    has_more: bool
+    next_page: Optional[int] = None
+
+
 PostResponse.model_rebuild()

@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import API from "../api/axios";
 import PostCard from "../components/PostCard";
+import FollowListModal from "../components/FollowListModal";
 
 function Profile() {
   const navigate = useNavigate();
@@ -22,6 +23,13 @@ function Profile() {
   const [myPosts, setMyPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Follow system state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followListType, setFollowListType] = useState(null);
 
   // Bio state
   const [editingBio, setEditingBio] = useState(false);
@@ -47,6 +55,10 @@ function Profile() {
       setCurrentUser(meRes.data);
       localStorage.setItem("user", JSON.stringify(meRes.data));
 
+      const profileUserId = isMyProfile
+        ? meRes.data.id
+        : Number(userId);
+
       const userResponse = isMyProfile
         ? meRes
         : await API.get(`/users/${userId}`);
@@ -55,9 +67,18 @@ function Profile() {
         ? await API.get("/posts/my-posts")
         : await API.get(`/posts/user/${userId}`);
 
+      const followStatusResponse = await API.get(
+        `/users/${profileUserId}/follow-status`
+      );
+
       setUser(userResponse.data);
       setBio(userResponse.data.bio || "");
+      setOriginalBio(userResponse.data.bio || "");
       setMyPosts(postsResponse.data);
+
+      setIsFollowing(followStatusResponse.data.is_following);
+      setFollowersCount(followStatusResponse.data.followers_count);
+      setFollowingCount(followStatusResponse.data.following_count);
     } catch (error) {
       console.error("Failed to fetch profile:", error);
       toast.error(error.response?.data?.detail || "Failed to load profile");
@@ -69,6 +90,62 @@ function Profile() {
   useEffect(() => {
     fetchProfileData();
   }, [fetchProfileData]);
+
+  const handleFollow = async () => {
+    if (isMyProfile || followLoading) {
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+
+      const response = await API.post(
+        `/users/${userId}/follow`
+      );
+
+      setIsFollowing(response.data.is_following);
+      setFollowersCount(response.data.followers_count);
+
+      toast.success(
+        response.data.message || "User followed successfully."
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail ||
+          "Failed to follow user."
+      );
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (isMyProfile || followLoading) {
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+
+      const response = await API.delete(
+        `/users/${userId}/follow`
+      );
+
+      setIsFollowing(response.data.is_following);
+      setFollowersCount(response.data.followers_count);
+
+      toast.success(
+        response.data.message || "User unfollowed successfully."
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail ||
+          "Failed to unfollow user."
+      );
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const handleProfilePictureUpload = async (e) => {
     const file = e.target.files[0];
@@ -383,6 +460,32 @@ function Profile() {
                   />
                 </label>
               )}
+
+              {!isMyProfile && (
+                <button
+                  onClick={
+                    isFollowing
+                      ? handleUnfollow
+                      : handleFollow
+                  }
+                  disabled={followLoading}
+                  className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 ${
+                    isFollowing
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  } ${
+                    followLoading
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  {followLoading
+                    ? "Please wait..."
+                    : isFollowing
+                    ? "Unfollow"
+                    : "Follow"}
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 mb-1">
@@ -397,6 +500,24 @@ function Profile() {
             </div>
 
             <p className="text-xs font-bold text-slate-400 mb-4">@{user?.username}</p>
+
+            <div className="flex items-center gap-6 mb-5">
+              <button
+                type="button"
+                onClick={() => setFollowListType("followers")}
+                className="text-sm text-slate-700 hover:text-indigo-600 transition"
+              >
+                <span className="font-bold">{followersCount}</span> Followers
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFollowListType("following")}
+                className="text-sm text-slate-700 hover:text-indigo-600 transition"
+              >
+                <span className="font-bold">{followingCount}</span> Following
+              </button>
+            </div>
 
             {editingBio ? (
               <div className="mt-4">
@@ -510,6 +631,14 @@ function Profile() {
           )}
         </div>
       </main>
+
+      {followListType && user?.id && (
+        <FollowListModal
+          userId={user.id}
+          type={followListType}
+          onClose={() => setFollowListType(null)}
+        />
+      )}
     </div>
   );
 }

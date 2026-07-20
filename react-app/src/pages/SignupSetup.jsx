@@ -19,9 +19,7 @@ function SignupSetup() {
 
   const fetchPendingUser = async () => {
     try {
-      const response = await API.get("/auth/pending-oauth-user", {
-        withCredentials: true,
-      });
+      const response = await API.get("/auth/pending-oauth-user");
 
       setEmail(response.data.email || "");
       setName(response.data.suggested_name || "");
@@ -54,10 +52,7 @@ function SignupSetup() {
 
       const response = await API.post(
         "/auth/oauth-complete-registration",
-        formData,
-        {
-          withCredentials: true,
-        }
+        formData
       );
 
       localStorage.setItem(

@@ -7,6 +7,8 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     UniqueConstraint,
+    CheckConstraint,
+    Index,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -17,7 +19,11 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     username = Column(
         String,
@@ -33,8 +39,15 @@ class User(Base):
         nullable=False
     )
 
-    name = Column(String, nullable=True)
-    password = Column(String, nullable=True)
+    name = Column(
+        String,
+        nullable=True
+    )
+
+    password = Column(
+        String,
+        nullable=True
+    )
 
     role = Column(
         String,
@@ -48,11 +61,25 @@ class User(Base):
         nullable=False
     )
 
-    otp_code = Column(String, nullable=True)
-    otp_expires_at = Column(DateTime, nullable=True)
+    otp_code = Column(
+        String,
+        nullable=True
+    )
 
-    reset_otp = Column(String, nullable=True)
-    reset_otp_expires_at = Column(DateTime, nullable=True)
+    otp_expires_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    reset_otp = Column(
+        String,
+        nullable=True
+    )
+
+    reset_otp_expires_at = Column(
+        DateTime,
+        nullable=True
+    )
 
     provider = Column(
         String,
@@ -60,10 +87,20 @@ class User(Base):
         nullable=False
     )
 
-    provider_id = Column(String, nullable=True)
+    provider_id = Column(
+        String,
+        nullable=True
+    )
 
-    profile_picture = Column(String, nullable=True)
-    bio = Column(Text, nullable=True)
+    profile_picture = Column(
+        String,
+        nullable=True
+    )
+
+    bio = Column(
+        Text,
+        nullable=True
+    )
 
     posts = relationship(
         "Post",
@@ -81,6 +118,215 @@ class User(Base):
         "Comment",
         back_populates="author",
         cascade="all, delete-orphan"
+    )
+
+    # Records where this user follows another user.
+    following_relationships = relationship(
+        "Follow",
+        foreign_keys="Follow.follower_id",
+        back_populates="follower",
+        cascade="all, delete-orphan"
+    )
+
+    # Records where another user follows this user.
+    follower_relationships = relationship(
+        "Follow",
+        foreign_keys="Follow.following_id",
+        back_populates="following",
+        cascade="all, delete-orphan"
+    )
+
+    # Friend requests sent by this user.
+    # Example:
+    # current_user.sent_friend_requests
+    sent_friend_requests = relationship(
+        "Friendship",
+        foreign_keys="Friendship.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan"
+    )
+
+    # Friend requests received by this user.
+    # Example:
+    # current_user.received_friend_requests
+    received_friend_requests = relationship(
+        "Friendship",
+        foreign_keys="Friendship.receiver_id",
+        back_populates="receiver",
+        cascade="all, delete-orphan"
+    )
+
+
+class Follow(Base):
+    __tablename__ = "follows"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # The user who presses the Follow button.
+    follower_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    # The user who is being followed.
+    following_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    follower = relationship(
+        "User",
+        foreign_keys=[follower_id],
+        back_populates="following_relationships"
+    )
+
+    following = relationship(
+        "User",
+        foreign_keys=[following_id],
+        back_populates="follower_relationships"
+    )
+
+    __table_args__ = (
+        # One user cannot follow the same user more than once.
+        UniqueConstraint(
+            "follower_id",
+            "following_id",
+            name="unique_follower_following"
+        ),
+
+        # Makes follower-list queries faster.
+        Index(
+            "index_follows_follower_id",
+            "follower_id"
+        ),
+
+        # Makes following-list queries faster.
+        Index(
+            "index_follows_following_id",
+            "following_id"
+        ),
+    )
+
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # The user who sends the friend request.
+    sender_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    # The user who receives the friend request.
+    receiver_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    # Possible values:
+    # pending, accepted, rejected
+    status = Column(
+        String,
+        default="pending",
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    sender = relationship(
+        "User",
+        foreign_keys=[sender_id],
+        back_populates="sent_friend_requests"
+    )
+
+    receiver = relationship(
+        "User",
+        foreign_keys=[receiver_id],
+        back_populates="received_friend_requests"
+    )
+
+    __table_args__ = (
+        # Stops duplicate rows in the same direction.
+        # Example:
+        # User 1 -> User 2 cannot be stored twice.
+        UniqueConstraint(
+            "sender_id",
+            "receiver_id",
+            name="unique_friendship_sender_receiver"
+        ),
+
+        # A user cannot send a friend request to themselves.
+        CheckConstraint(
+            "sender_id != receiver_id",
+            name="check_friendship_not_self"
+        ),
+
+        # Only these three statuses are allowed.
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected')",
+            name="check_friendship_valid_status"
+        ),
+
+        # Makes sent request queries faster.
+        Index(
+            "index_friendships_sender_id",
+            "sender_id"
+        ),
+
+        # Makes received request queries faster.
+        Index(
+            "index_friendships_receiver_id",
+            "receiver_id"
+        ),
+
+        # Makes queries filtered by status faster.
+        Index(
+            "index_friendships_status",
+            "status"
+        ),
     )
 
 

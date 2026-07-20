@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     UniqueConstraint,
+    CheckConstraint,
     Index,
 )
 from sqlalchemy.orm import relationship
@@ -120,8 +121,6 @@ class User(Base):
     )
 
     # Records where this user follows another user.
-    # Example:
-    # current_user.following_relationships
     following_relationships = relationship(
         "Follow",
         foreign_keys="Follow.follower_id",
@@ -130,12 +129,30 @@ class User(Base):
     )
 
     # Records where another user follows this user.
-    # Example:
-    # current_user.follower_relationships
     follower_relationships = relationship(
         "Follow",
         foreign_keys="Follow.following_id",
         back_populates="following",
+        cascade="all, delete-orphan"
+    )
+
+    # Friend requests sent by this user.
+    # Example:
+    # current_user.sent_friend_requests
+    sent_friend_requests = relationship(
+        "Friendship",
+        foreign_keys="Friendship.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan"
+    )
+
+    # Friend requests received by this user.
+    # Example:
+    # current_user.received_friend_requests
+    received_friend_requests = relationship(
+        "Friendship",
+        foreign_keys="Friendship.receiver_id",
+        back_populates="receiver",
         cascade="all, delete-orphan"
     )
 
@@ -205,6 +222,110 @@ class Follow(Base):
         Index(
             "index_follows_following_id",
             "following_id"
+        ),
+    )
+
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # The user who sends the friend request.
+    sender_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    # The user who receives the friend request.
+    receiver_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    # Possible values:
+    # pending, accepted, rejected
+    status = Column(
+        String,
+        default="pending",
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    sender = relationship(
+        "User",
+        foreign_keys=[sender_id],
+        back_populates="sent_friend_requests"
+    )
+
+    receiver = relationship(
+        "User",
+        foreign_keys=[receiver_id],
+        back_populates="received_friend_requests"
+    )
+
+    __table_args__ = (
+        # Stops duplicate rows in the same direction.
+        # Example:
+        # User 1 -> User 2 cannot be stored twice.
+        UniqueConstraint(
+            "sender_id",
+            "receiver_id",
+            name="unique_friendship_sender_receiver"
+        ),
+
+        # A user cannot send a friend request to themselves.
+        CheckConstraint(
+            "sender_id != receiver_id",
+            name="check_friendship_not_self"
+        ),
+
+        # Only these three statuses are allowed.
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected')",
+            name="check_friendship_valid_status"
+        ),
+
+        # Makes sent request queries faster.
+        Index(
+            "index_friendships_sender_id",
+            "sender_id"
+        ),
+
+        # Makes received request queries faster.
+        Index(
+            "index_friendships_receiver_id",
+            "receiver_id"
+        ),
+
+        # Makes queries filtered by status faster.
+        Index(
+            "index_friendships_status",
+            "status"
         ),
     )
 

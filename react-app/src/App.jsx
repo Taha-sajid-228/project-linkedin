@@ -12,6 +12,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import LikesList from "./pages/LikesList";
 import DiscoverUsers from "./pages/DiscoverUsers";
+import Friends from "./pages/Friends";
 
 import { Toaster } from "react-hot-toast";
 
@@ -23,9 +24,18 @@ function App() {
   return (
     <>
       <Toaster />
+
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
 
           {/* Current user's profile */}
           <Route
@@ -87,9 +97,20 @@ function App() {
             }
           />
 
-          <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route path="/signup-setup" element={<SignupSetup />} />
-          <Route path="/oauth-success" element={<OAuthSuccess />} />
+          <Route
+            path="/verify-otp"
+            element={<VerifyOtp />}
+          />
+
+          <Route
+            path="/signup-setup"
+            element={<SignupSetup />}
+          />
+
+          <Route
+            path="/oauth-success"
+            element={<OAuthSuccess />}
+          />
 
           {/* Feed page */}
           <Route
@@ -107,6 +128,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <DiscoverUsers />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Friends page */}
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <Friends />
               </ProtectedRoute>
             }
           />
@@ -142,7 +173,15 @@ function App() {
           />
 
           {/* Invalid URL */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>

@@ -11,6 +11,7 @@ import {
   rejectFriendRequest,
   removeFriend,
 } from "../api/friends";
+import { createConversation } from "../api/chat";
 
 
 function Friends() {
@@ -212,6 +213,38 @@ function Friends() {
       toast.error(
         requestError.response?.data?.detail ||
         "Failed to remove friend."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+
+  // ==========================
+  // Start Conversation
+  // ==========================
+
+  const handleStartConversation = async (
+    userId
+  ) => {
+    try {
+      setActionLoading(
+        `chat-${userId}`
+      );
+
+      const response =
+        await createConversation(userId);
+
+      navigate("/messages", {
+        state: {
+          conversationId:
+            response.conversation.id,
+        },
+      });
+    } catch (requestError) {
+      toast.error(
+        requestError.response?.data?.detail ||
+        "Failed to start conversation."
       );
     } finally {
       setActionLoading(null);
@@ -482,6 +515,24 @@ function Friends() {
                       >
                         View Profile
                       </Link>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleStartConversation(
+                            friendship.user.id
+                          )
+                        }
+                        disabled={
+                          actionLoading !== null
+                        }
+                        className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {actionLoading ===
+                        `chat-${friendship.user.id}`
+                          ? "Opening..."
+                          : "Message"}
+                      </button>
 
                       <button
                         type="button"

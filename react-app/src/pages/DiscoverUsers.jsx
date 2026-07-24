@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import API from "../api/axios";
+import { showConfirmation } from "../utils/confirmDialog";
 
 import {
   acceptFriendRequest,
@@ -29,6 +30,7 @@ function DiscoverUsers() {
 
   const [followLoadingId, setFollowLoadingId] = useState(null);
   const [friendLoadingId, setFriendLoadingId] = useState(null);
+  const [hoveredFollowUserId, setHoveredFollowUserId] = useState(null);
 
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -158,6 +160,21 @@ function DiscoverUsers() {
 
 
   // ==========================
+  // Follow Button Helper
+  // ==========================
+
+  const getFollowButtonText = (user) => {
+    if (user.is_following) {
+      return "Unfollow";
+    }
+    if (user.follows_you) {
+      return "Follow Back";
+    }
+    return "Follow";
+  };
+
+
+  // ==========================
   // Follow User
   // ==========================
 
@@ -181,6 +198,8 @@ function DiscoverUsers() {
                 is_following:
                   response.data?.is_following ??
                   true,
+
+                follows_you: user.follows_you,
 
                 followers_count:
                   response.data?.followers_count ??
@@ -213,6 +232,16 @@ function DiscoverUsers() {
 
   const handleUnfollow = async (userId) => {
     if (followLoadingId !== null) {
+      return;
+    }
+
+    const result = await showConfirmation({
+      title: "Unfollow this user?",
+      text: "You can follow this user again at any time.",
+      confirmButtonText: "Unfollow",
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -391,6 +420,16 @@ function DiscoverUsers() {
     userId
   ) => {
     if (friendLoadingId !== null) {
+      return;
+    }
+
+    const result = await showConfirmation({
+      title: "Reject friend request?",
+      text: "This friend request will be permanently removed.",
+      confirmButtonText: "Reject",
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -620,7 +659,7 @@ function DiscoverUsers() {
 
                   {/* Action Buttons */}
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    {/* Follow / Unfollow */}
+                    {/* Follow / Unfollow / Follow Back */}
                     <button
                       type="button"
                       disabled={isFollowLoading}
@@ -629,9 +668,17 @@ function DiscoverUsers() {
                           ? handleUnfollow(user.id)
                           : handleFollow(user.id)
                       }
-                      className={`min-w-24 rounded-xl px-4 py-2 text-xs font-black transition ${
+                      onMouseEnter={() =>
+                        setHoveredFollowUserId(user.id)
+                      }
+                      onMouseLeave={() =>
+                        setHoveredFollowUserId(null)
+                      }
+                      className={`min-w-24 rounded-xl px-4 py-2 text-xs font-black transition-all duration-200 ${
                         user.is_following
-                          ? "border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          ? hoveredFollowUserId === user.id
+                            ? "border border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
+                            : "border border-slate-200 bg-slate-100 text-slate-700"
                           : "bg-indigo-600 text-white hover:bg-indigo-700"
                       } ${
                         isFollowLoading
@@ -639,11 +686,17 @@ function DiscoverUsers() {
                           : "cursor-pointer"
                       }`}
                     >
-                      {isFollowLoading
-                        ? "Please wait..."
-                        : user.is_following
-                        ? "Unfollow"
-                        : "Follow"}
+                      {isFollowLoading ? (
+                        "Please wait..."
+                      ) : user.is_following ? (
+                        hoveredFollowUserId === user.id ? (
+                          "Unfollow"
+                        ) : (
+                          "Following"
+                        )
+                      ) : (
+                        getFollowButtonText(user)
+                      )}
                     </button>
 
 

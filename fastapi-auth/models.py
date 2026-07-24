@@ -157,6 +157,23 @@ class User(Base):
     )
 
 
+    # Conversations this user participates in.
+    conversation_participations = relationship(
+        "ConversationParticipant",
+        foreign_keys="ConversationParticipant.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # Messages sent by this user.
+    sent_messages = relationship(
+        "Message",
+        foreign_keys="Message.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan"
+    )
+
+
 class Follow(Base):
     __tablename__ = "follows"
 
@@ -326,6 +343,208 @@ class Friendship(Base):
         Index(
             "index_friendships_status",
             "status"
+        ),
+    )
+
+
+# ==========================
+# Chat Models
+# ==========================
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    participants = relationship(
+        "ConversationParticipant",
+        back_populates="conversation",
+        cascade="all, delete-orphan"
+    )
+
+    messages = relationship(
+        "Message",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at"
+    )
+
+
+class ConversationParticipant(Base):
+    __tablename__ = "conversation_participants"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    conversation_id = Column(
+        Integer,
+        ForeignKey(
+            "conversations.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    joined_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    conversation = relationship(
+        "Conversation",
+        back_populates="participants"
+    )
+
+    user = relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="conversation_participations"
+    )
+
+    __table_args__ = (
+        # A user can only appear once in the same conversation.
+        UniqueConstraint(
+            "conversation_id",
+            "user_id",
+            name="unique_conversation_participant"
+        ),
+
+        Index(
+            "index_conversation_participants_conversation_id",
+            "conversation_id"
+        ),
+
+        Index(
+            "index_conversation_participants_user_id",
+            "user_id"
+        ),
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    conversation_id = Column(
+        Integer,
+        ForeignKey(
+            "conversations.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    sender_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    content = Column(
+        Text,
+        nullable=False
+    )
+
+    is_delivered = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    delivered_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    is_read = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    read_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    conversation = relationship(
+        "Conversation",
+        back_populates="messages"
+    )
+
+    sender = relationship(
+        "User",
+        foreign_keys=[sender_id],
+        back_populates="sent_messages"
+    )
+
+    __table_args__ = (
+        Index(
+            "index_messages_conversation_id",
+            "conversation_id"
+        ),
+
+        Index(
+            "index_messages_sender_id",
+            "sender_id"
+        ),
+
+        # Useful for loading messages in chronological order.
+        Index(
+            "index_messages_conversation_created_at",
+            "conversation_id",
+            "created_at"
+        ),
+
+        # Useful for unread message queries.
+        Index(
+            "index_messages_conversation_read_status",
+            "conversation_id",
+            "is_read"
         ),
     )
 

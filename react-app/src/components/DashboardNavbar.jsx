@@ -304,36 +304,33 @@ function DashboardNavbar({
             </span>
           </button>
 
-          {/* Jobs Button */}
-          <button
-            type="button"
-            className="flex cursor-pointer flex-col items-center justify-center text-slate-500 transition-colors hover:text-indigo-600"
-          >
-            <svg
-              className="h-5 w-5 text-current"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {/* Admin Button */}
+          {user?.role === "admin" && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/admin-dashboard")
+              }
+              className="flex cursor-pointer flex-col items-center justify-center text-slate-500 transition-colors hover:text-indigo-600"
             >
-              <rect
-                width="20"
-                height="14"
-                x="2"
-                y="7"
-                rx="2"
-                ry="2"
-              />
+              <svg
+                className="h-5 w-5 text-current"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
 
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-            </svg>
-
-            <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-wider sm:inline">
-              Jobs
-            </span>
-          </button>
+              <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-wider sm:inline">
+                Admin
+              </span>
+            </button>
+          )}
 
           {/* Profile Button */}
           <button
@@ -368,6 +365,12 @@ function DashboardNavbar({
                 <p className="text-xs font-bold leading-none text-slate-800">
                   {user?.username}
                 </p>
+
+                {user?.role === "admin" && (
+                  <p className="mt-1 rounded bg-indigo-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-700">
+                    Administrator
+                  </p>
+                )}
 
                 <p className="mt-0.5 text-[10px] font-semibold text-slate-400">
                   {user?.email}

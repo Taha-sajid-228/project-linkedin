@@ -342,11 +342,29 @@ function useDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
+const handleLogout = async () => {
+  const result = await showConfirmation({
+    title: "Logout?",
+    text: "Are you sure you want to logout from your account?",
+    confirmButtonText: "Logout",
+    confirmButtonClass:
+      "bg-red-600 hover:bg-red-700",
+  });
+
+  if (!result.isConfirmed) {
+    return;
+  }
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("role");
+
+  toast.success("Logged out successfully.");
+
+  navigate("/login", {
+    replace: true,
+  });
+};
 
   const goToProfile = () => {
     navigate("/profile");

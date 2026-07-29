@@ -193,37 +193,51 @@ def get_personalized_feed(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Return posts created by:
+    Normal users:
+    - Their own posts
+    - Posts from people they follow
 
-    1. Users followed by the current user.
-    2. The current user.
-
-    Posts are returned using page-based pagination.
+    Admin:
+    - All active posts on the platform
     """
 
     offset = (page - 1) * limit
 
-    followed_user_ids = db.query(
-        Follow.following_id
-    ).filter(
-        Follow.follower_id == current_user.id
-    )
-
-    posts = post_query_with_relations(db).filter(
+    query = post_query_with_relations(db).filter(
         Post.is_deleted == False,
         Post.is_archived == False,
-        or_(
-            Post.author_id == current_user.id,
-            Post.author_id.in_(followed_user_ids),
-        ),
-    ).order_by(
-        Post.created_at.desc(),
-        Post.id.desc(),
-    ).offset(
-        offset
-    ).limit(
-        limit + 1
-    ).all()
+    )
+
+    # Admin sees every active post
+    if current_user.role == "admin":
+        pass
+
+    # Normal users only see their own + followed users
+    else:
+        followed_user_ids = (
+            db.query(Follow.following_id)
+            .filter(
+                Follow.follower_id == current_user.id
+            )
+        )
+
+        query = query.filter(
+            or_(
+                Post.author_id == current_user.id,
+                Post.author_id.in_(followed_user_ids),
+            )
+        )
+
+    posts = (
+        query
+        .order_by(
+            Post.created_at.desc(),
+            Post.id.desc(),
+        )
+        .offset(offset)
+        .limit(limit + 1)
+        .all()
+    )
 
     has_more = len(posts) > limit
 

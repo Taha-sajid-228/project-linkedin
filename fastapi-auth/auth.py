@@ -346,6 +346,12 @@ def login(
     if not user.is_verified:
         raise HTTPException(status_code=400, detail="Please verify your email with OTP first.")
 
+    if user.is_blocked:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been blocked by an administrator."
+        )
+
     access_token = create_access_token(
         data={
             "sub": user.email,
@@ -386,6 +392,9 @@ def get_current_user(
 
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+
+    if user.is_blocked:
+        raise HTTPException(status_code=403, detail="Your account has been blocked.")
 
     return user
 
@@ -485,6 +494,3 @@ def admin_only_route(current_user: User = Depends(get_admin_user)):
             "role": current_user.role
         }
     }
-
-
-   

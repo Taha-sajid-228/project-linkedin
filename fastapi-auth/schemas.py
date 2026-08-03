@@ -34,8 +34,8 @@ class UserResponse(BaseModel):
 
 
 # Lightweight public user schema.
-# We use this in followers/following lists instead of returning
-# private fields such as email, role, provider and verification status.
+# We use this in followers/following and friendship lists
+# instead of returning private fields such as email and role.
 class PublicUserResponse(BaseModel):
     id: int
     username: str
@@ -102,6 +102,55 @@ class FollowListResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool
+
+
+# ==========================
+# Friendship Schemas
+# ==========================
+
+# Used when sending, receiving, accepting or rejecting
+# a friend request.
+class FriendshipResponse(BaseModel):
+    id: int
+    sender_id: int
+    receiver_id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    sender: PublicUserResponse
+    receiver: PublicUserResponse
+
+    class Config:
+        from_attributes = True
+
+
+# Used for received and sent friend-request lists.
+class FriendRequestListResponse(BaseModel):
+    requests: List[FriendshipResponse] = Field(default_factory=list)
+    total: int
+
+
+# One item returned inside GET /friends.
+class FriendListItemResponse(BaseModel):
+    friendship_id: int
+    friends_since: datetime
+    user: PublicUserResponse
+
+
+# Complete response returned by GET /friends.
+class FriendsListResponse(BaseModel):
+    friends: List[FriendListItemResponse] = Field(default_factory=list)
+    total: int
+
+
+# Simple response for actions such as:
+# request sent, request accepted, request rejected,
+# request cancelled and friend removed.
+class FriendshipActionResponse(BaseModel):
+    message: str
+    friendship_id: Optional[int] = None
+    status: Optional[str] = None
 
 
 # ==========================

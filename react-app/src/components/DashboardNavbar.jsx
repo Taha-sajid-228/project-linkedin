@@ -24,6 +24,7 @@ function DashboardNavbar({ user, onLogout, onGoProfile }) {
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
+
             <span className="text-xl font-black tracking-tight text-slate-900">
               Link<span className="text-indigo-600">Loop</span>
             </span>
@@ -71,12 +72,13 @@ function DashboardNavbar({ user, onLogout, onGoProfile }) {
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
+
             <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline mt-1">
               Home
             </span>
           </button>
 
-          {/* Network Button -> Navigate to /discover */}
+          {/* Network Button */}
           <button
             onClick={() => navigate("/discover")}
             className="flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
@@ -95,8 +97,34 @@ function DashboardNavbar({ user, onLogout, onGoProfile }) {
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
+
             <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline mt-1">
               Network
+            </span>
+          </button>
+
+          {/* Friends Button */}
+          <button
+            onClick={() => navigate("/friends")}
+            className="flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+          >
+            <svg
+              className="h-5 w-5 text-current"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+              <circle cx="10" cy="7" r="4" />
+              <path d="M21 8v6" />
+              <path d="M24 11h-6" />
+            </svg>
+
+            <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline mt-1">
+              Friends
             </span>
           </button>
 
@@ -114,6 +142,7 @@ function DashboardNavbar({ user, onLogout, onGoProfile }) {
               <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
             </svg>
+
             <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline mt-1">
               Jobs
             </span>
@@ -146,6 +175,7 @@ function DashboardNavbar({ user, onLogout, onGoProfile }) {
                 <p className="text-xs font-bold leading-none text-slate-800">
                   {user?.username}
                 </p>
+
                 <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
                   {user?.email}
                 </p>

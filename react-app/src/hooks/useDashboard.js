@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import toast from "react-hot-toast";
+
 import API from "../api/axios";
+import { showConfirmation } from "../utils/confirmDialog";
 
 function useDashboard() {
   const navigate = useNavigate();
@@ -193,94 +194,89 @@ function useDashboard() {
     }
   };
 
-  const handleDeletePost = (postId) => {
-    Swal.fire({
+  const handleDeletePost = async (postId) => {
+    const result = await showConfirmation({
       title: "Delete this post?",
       text: "This post will be removed from your profile and feed.",
-      icon: "warning",
-      showCancelButton: true,
       confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
-      customClass: {
-        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
-        title: "text-lg font-black text-slate-900",
-        htmlContainer: "text-sm text-slate-500",
-        confirmButton: "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-      },
-      buttonsStyling: false,
-    }).then(async (result) => {
-      if (!result.isConfirmed) return;
-
-      try {
-        await API.delete(`/posts/${postId}`);
-        toast.success("Post deleted successfully.");
-        await refreshFeed();
-      } catch (err) {
-        console.error("Failed to delete post:", err);
-        toast.error(err.response?.data?.detail || "Failed to delete the post.");
-      }
     });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      await API.delete(`/posts/${postId}`);
+
+      toast.success("Post deleted successfully.");
+
+      await refreshFeed();
+    } catch (err) {
+      console.error("Failed to delete post:", err);
+
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to delete the post."
+      );
+    }
   };
 
-  const handleArchivePost = (postId) => {
-    Swal.fire({
+  const handleArchivePost = async (postId) => {
+    const result = await showConfirmation({
       title: "Archive this post?",
       text: "The post will be hidden from the feed but will remain available on your profile.",
-      icon: "warning",
-      showCancelButton: true,
       confirmButtonText: "Archive",
-      cancelButtonText: "Cancel",
-      customClass: {
-        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
-        title: "text-lg font-black text-slate-900",
-        htmlContainer: "text-sm text-slate-500",
-        confirmButton: "bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-      },
-      buttonsStyling: false,
-    }).then(async (result) => {
-      if (!result.isConfirmed) return;
-
-      try {
-        await API.patch(`/posts/${postId}/archive`);
-        toast.success("Post archived successfully.");
-        await refreshFeed();
-      } catch (err) {
-        console.error("Failed to archive post:", err);
-        toast.error(err.response?.data?.detail || "Failed to archive the post.");
-      }
+      confirmButtonClass:
+        "bg-yellow-600 hover:bg-yellow-700",
     });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      await API.patch(`/posts/${postId}/archive`);
+
+      toast.success("Post archived successfully.");
+
+      await refreshFeed();
+    } catch (err) {
+      console.error("Failed to archive post:", err);
+
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to archive the post."
+      );
+    }
   };
 
-  const handleUnarchivePost = (postId) => {
-    Swal.fire({
+  const handleUnarchivePost = async (postId) => {
+    const result = await showConfirmation({
       title: "Restore this post?",
       text: "The post will become visible in the feed again.",
-      icon: "warning",
-      showCancelButton: true,
       confirmButtonText: "Restore",
-      cancelButtonText: "Cancel",
-      customClass: {
-        popup: "rounded-2xl border border-slate-200 bg-white p-6 shadow-xl font-sans",
-        title: "text-lg font-black text-slate-900",
-        htmlContainer: "text-sm text-slate-500",
-        confirmButton: "bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-        cancelButton: "bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl text-xs mx-2 cursor-pointer transition-all active:scale-95",
-      },
-      buttonsStyling: false,
-    }).then(async (result) => {
-      if (!result.isConfirmed) return;
-
-      try {
-        await API.patch(`/posts/${postId}/unarchive`);
-        toast.success("Post restored successfully.");
-        await refreshFeed();
-      } catch (err) {
-        console.error("Failed to restore post:", err);
-        toast.error(err.response?.data?.detail || "Failed to restore the post.");
-      }
+      confirmButtonClass:
+        "bg-indigo-600 hover:bg-indigo-700",
     });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      await API.patch(`/posts/${postId}/unarchive`);
+
+      toast.success("Post restored successfully.");
+
+      await refreshFeed();
+    } catch (err) {
+      console.error("Failed to restore post:", err);
+
+      toast.error(
+        err.response?.data?.detail ||
+          "Failed to restore the post."
+      );
+    }
   };
 
   const handleLikePost = async (postId) => {

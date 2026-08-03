@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import LikesList from "./pages/LikesList";
 import DiscoverUsers from "./pages/DiscoverUsers";
 import Friends from "./pages/Friends";
+import Messages from "./pages/Messages";
 
 import { Toaster } from "react-hot-toast";
 
@@ -138,6 +139,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <Friends />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Messages page */}
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <Messages />
               </ProtectedRoute>
             }
           />

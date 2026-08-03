@@ -14,6 +14,7 @@ from auth import router as auth_router
 from oauth import router as oauth_router
 from follows import router as follows_router
 from friends import router as friends_router
+from chat import router as chat_router
 from database import engine, Base
 
 import models
@@ -72,6 +73,7 @@ app.include_router(posts_router)
 app.include_router(comments_router)
 app.include_router(follows_router)
 app.include_router(friends_router)
+app.include_router(chat_router)
 
 
 # Basic health-check route

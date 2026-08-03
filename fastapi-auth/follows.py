@@ -1,4 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, aliased
 
@@ -47,8 +53,10 @@ def get_all_users(
     Return all users except the currently logged-in user.
 
     The response also includes:
-    - Whether the current user follows each listed user
-    - Each listed user's followers count
+
+    - Whether the current user follows each user
+    - Whether each user follows the current user
+    - Each user's followers count
     - Pagination information
     """
 
@@ -58,16 +66,25 @@ def get_all_users(
         .count()
     )
 
+    # Count how many followers each user has.
     followers_count_subquery = (
         db.query(
             Follow.following_id.label("user_id"),
-            func.count(Follow.id).label("followers_count"),
+            func.count(Follow.id).label(
+                "followers_count"
+            ),
         )
         .group_by(Follow.following_id)
         .subquery()
     )
 
+    # Relationship:
+    # Current logged-in user follows listed user.
     current_user_follow = aliased(Follow)
+
+    # Reverse relationship:
+    # Listed user follows current logged-in user.
+    reverse_follow = aliased(Follow)
 
     user_records = (
         db.query(
@@ -76,17 +93,34 @@ def get_all_users(
                 followers_count_subquery.c.followers_count,
                 0,
             ).label("followers_count"),
-            current_user_follow.id.label("follow_relationship_id"),
+            current_user_follow.id.label(
+                "follow_relationship_id"
+            ),
+            reverse_follow.id.label(
+                "reverse_follow_relationship_id"
+            ),
         )
         .outerjoin(
             followers_count_subquery,
-            followers_count_subquery.c.user_id == User.id,
+            followers_count_subquery.c.user_id
+            == User.id,
         )
         .outerjoin(
             current_user_follow,
             and_(
-                current_user_follow.follower_id == current_user.id,
-                current_user_follow.following_id == User.id,
+                current_user_follow.follower_id
+                == current_user.id,
+                current_user_follow.following_id
+                == User.id,
+            ),
+        )
+        .outerjoin(
+            reverse_follow,
+            and_(
+                reverse_follow.follower_id
+                == User.id,
+                reverse_follow.following_id
+                == current_user.id,
             ),
         )
         .filter(User.id != current_user.id)
@@ -98,7 +132,12 @@ def get_all_users(
 
     users = []
 
-    for user, followers_count, follow_relationship_id in user_records:
+    for (
+        user,
+        followers_count,
+        follow_relationship_id,
+        reverse_follow_relationship_id,
+    ) in user_records:
         users.append(
             DiscoverUserResponse(
                 id=user.id,
@@ -106,7 +145,13 @@ def get_all_users(
                 name=user.name,
                 profile_picture=user.profile_picture,
                 bio=user.bio,
-                is_following=follow_relationship_id is not None,
+                is_following=(
+                    follow_relationship_id is not None
+                ),
+                follows_you=(
+                    reverse_follow_relationship_id
+                    is not None
+                ),
                 followers_count=followers_count,
             )
         )
@@ -279,11 +324,22 @@ def get_follow_status(
             detail="User not found",
         )
 
+    # Does the current user follow the target user?
     follow_relationship = (
         db.query(Follow)
         .filter(
             Follow.follower_id == current_user.id,
             Follow.following_id == user_id,
+        )
+        .first()
+    )
+
+    # Does the target user follow the current user?
+    reverse_follow_relationship = (
+        db.query(Follow)
+        .filter(
+            Follow.follower_id == user_id,
+            Follow.following_id == current_user.id,
         )
         .first()
     )
@@ -303,6 +359,9 @@ def get_follow_status(
     return FollowStatusResponse(
         user_id=user_id,
         is_following=follow_relationship is not None,
+        follows_you=(
+            reverse_follow_relationship is not None
+        ),
         followers_count=followers_count,
         following_count=following_count,
     )
@@ -462,4 +521,5 @@ def get_following(
         total=total,
         limit=limit,
         offset=offset,
-        has_more=offset + len(users) < total,)
+        has_more=offset + len(users) < total,
+    )

@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import Profile from "./pages/Profile";
 import PostDetails from "./pages/PostDetails";
 import Login from "./pages/Login";
@@ -10,6 +16,8 @@ import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminPosts from "./pages/AdminPosts";
 import LikesList from "./pages/LikesList";
 import DiscoverUsers from "./pages/DiscoverUsers";
 import Friends from "./pages/Friends";
@@ -21,6 +29,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminProtectedRoute from "./routes/AdminProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 
+
 function App() {
   return (
     <>
@@ -28,6 +37,7 @@ function App() {
 
       <BrowserRouter>
         <Routes>
+          {/* Default route */}
           <Route
             path="/"
             element={
@@ -98,16 +108,19 @@ function App() {
             }
           />
 
+          {/* OTP verification */}
           <Route
             path="/verify-otp"
             element={<VerifyOtp />}
           />
 
+          {/* OAuth username setup */}
           <Route
             path="/signup-setup"
             element={<SignupSetup />}
           />
 
+          {/* OAuth success */}
           <Route
             path="/oauth-success"
             element={<OAuthSuccess />}
@@ -183,6 +196,26 @@ function App() {
             }
           />
 
+          {/* Admin user management */}
+          <Route
+            path="/admin/users"
+            element={
+              <AdminProtectedRoute>
+                <AdminUsers />
+              </AdminProtectedRoute>
+            }
+          />
+
+          {/* Admin post management */}
+          <Route
+            path="/admin/posts"
+            element={
+              <AdminProtectedRoute>
+                <AdminPosts />
+              </AdminProtectedRoute>
+            }
+          />
+
           {/* Invalid URL */}
           <Route
             path="*"
@@ -198,5 +231,6 @@ function App() {
     </>
   );
 }
+
 
 export default App;

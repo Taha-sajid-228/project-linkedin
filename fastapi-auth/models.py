@@ -61,6 +61,49 @@ class User(Base):
         nullable=False
     )
 
+    # Admin can block a user from logging in and using protected features.
+    is_blocked = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True
+    )
+
+    # Soft deletion keeps the user's related posts, messages and social data safe.
+    is_deleted = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True
+    )
+
+    # Stores when an admin blocked this user.
+    blocked_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # Stores when the user account was soft-deleted.
+    deleted_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # Required for admin dashboard signup statistics.
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
     otp_code = Column(
         String,
         nullable=True

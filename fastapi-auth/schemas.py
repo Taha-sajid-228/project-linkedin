@@ -58,6 +58,44 @@ class DiscoverUsersResponse(BaseModel):
     has_more: bool
 
 
+# ==========================
+# Admin User Management Schemas
+# ==========================
+
+class AdminUserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    name: Optional[str] = None
+    role: str
+    provider: str
+    is_verified: bool
+    is_blocked: bool
+    is_deleted: bool
+    profile_picture: Optional[str] = None
+    bio: Optional[str] = None
+    blocked_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminUsersResponse(BaseModel):
+    users: List[AdminUserResponse] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class AdminUserActionResponse(BaseModel):
+    message: str
+    user: AdminUserResponse
+
+
 class PostAuthorResponse(BaseModel):
     id: int
     username: str
@@ -255,6 +293,55 @@ class PostMediaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ==========================
+# Admin Post Management Schemas
+# ==========================
+
+class AdminPostAuthorResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    name: Optional[str] = None
+    profile_picture: Optional[str] = None
+    is_blocked: bool
+    is_deleted: bool
+
+    class Config:
+        from_attributes = True
+
+
+class AdminPostResponse(BaseModel):
+    id: int
+    content: Optional[str] = None
+    author_id: int
+    author: AdminPostAuthorResponse
+    is_archived: bool
+    is_deleted: bool
+    original_post_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    media: List[PostMediaResponse] = Field(default_factory=list)
+    likes_count: int = 0
+    comments_count: int = 0
+    reshare_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class AdminPostsResponse(BaseModel):
+    posts: List[AdminPostResponse] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class AdminPostActionResponse(BaseModel):
+    message: str
+    post: AdminPostResponse
 
 
 # ==========================

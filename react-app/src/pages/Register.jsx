@@ -26,13 +26,13 @@ function Register() {
     }
   }, [searchParams]);
 
-  const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8000/auth/google/register";
-  };
+const handleGoogleLogin = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google/register`;
+};
 
-  const handleGithubLogin = () => {
-    window.location.href = "http://localhost:8000/auth/github/register";
-  };
+const handleGithubLogin = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/register`;
+};
 
   const handleChange = (e) => {
     setFormData({

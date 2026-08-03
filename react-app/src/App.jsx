@@ -11,6 +11,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import LikesList from "./pages/LikesList";
+import DiscoverUsers from "./pages/DiscoverUsers";
 
 import { Toaster } from "react-hot-toast";
 
@@ -24,116 +25,126 @@ function App() {
       <Toaster />
       <BrowserRouter>
         <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Current user's profile */}
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          {/* Current user's profile */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Another user's profile */}
-        <Route
-          path="/profile/:userId"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          {/* Another user's profile */}
+          <Route
+            path="/profile/:userId"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Login */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
+          {/* Login */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
 
-        {/* Register */}
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
+          {/* Register */}
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
 
-        {/* Forgot password */}
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-          }
-        />
+          {/* Forgot password */}
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPassword />
+              </PublicRoute>
+            }
+          />
 
-        {/* Reset password */}
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
-        />
+          {/* Reset password */}
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
+          />
 
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/signup-setup" element={<SignupSetup />} />
-        <Route path="/oauth-success" element={<OAuthSuccess />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/signup-setup" element={<SignupSetup />} />
+          <Route path="/oauth-success" element={<OAuthSuccess />} />
 
-        {/* Feed page */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+          {/* Feed page */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Individual post page */}
-        <Route
-          path="/posts/:postId"
-          element={
-            <ProtectedRoute>
-              <PostDetails />
-            </ProtectedRoute>
-          }
-        />
+          {/* Discover people page */}
+          <Route
+            path="/discover"
+            element={
+              <ProtectedRoute>
+                <DiscoverUsers />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Likes list page */}
-        <Route
-          path="/posts/:postId/likes"
-          element={
-            <ProtectedRoute>
-              <LikesList />
-            </ProtectedRoute>
-          }
-        />
+          {/* Individual post page */}
+          <Route
+            path="/posts/:postId"
+            element={
+              <ProtectedRoute>
+                <PostDetails />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin dashboard */}
-        <Route
-          path="/admin-dashboard"
-          element={
-            <AdminProtectedRoute>
-              <AdminDashboard />
-            </AdminProtectedRoute>
-          }
-        />
+          {/* Likes list page */}
+          <Route
+            path="/posts/:postId/likes"
+            element={
+              <ProtectedRoute>
+                <LikesList />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Invalid URL */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Admin dashboard */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminProtectedRoute>
+                <AdminDashboard />
+              </AdminProtectedRoute>
+            }
+          />
+
+          {/* Invalid URL */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }

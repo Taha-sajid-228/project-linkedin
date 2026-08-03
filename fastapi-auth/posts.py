@@ -1,10 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    Form,
+    Query,
+)
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 from typing import Optional, List
 
 from database import get_db
-from models import Post, User, PostMedia, Like, Comment
-from schemas import PostUpdate, PostResponse, UserResponse
+from models import Post, User, PostMedia, Like, Comment, Follow
+from schemas import PostUpdate, PostResponse, UserResponse, FeedResponse
 from auth import get_current_user
 from services.s3_service import upload_file_to_s3
 
@@ -168,9 +177,71 @@ def get_feed_posts(
     posts = post_query_with_relations(db).filter(
         Post.is_deleted == False,
         Post.is_archived == False
-    ).order_by(Post.created_at.desc()).all()
+    ).order_by(
+        Post.created_at.desc(),
+        Post.id.desc(),
+    ).all()
 
     return add_post_info_to_posts(posts, current_user, db)
+
+
+@router.get("/feed", response_model=FeedResponse)
+def get_personalized_feed(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return posts created by:
+
+    1. Users followed by the current user.
+    2. The current user.
+
+    Posts are returned using page-based pagination.
+    """
+
+    offset = (page - 1) * limit
+
+    followed_user_ids = db.query(
+        Follow.following_id
+    ).filter(
+        Follow.follower_id == current_user.id
+    )
+
+    posts = post_query_with_relations(db).filter(
+        Post.is_deleted == False,
+        Post.is_archived == False,
+        or_(
+            Post.author_id == current_user.id,
+            Post.author_id.in_(followed_user_ids),
+        ),
+    ).order_by(
+        Post.created_at.desc(),
+        Post.id.desc(),
+    ).offset(
+        offset
+    ).limit(
+        limit + 1
+    ).all()
+
+    has_more = len(posts) > limit
+
+    current_page_posts = posts[:limit]
+
+    prepared_posts = add_post_info_to_posts(
+        current_page_posts,
+        current_user,
+        db,
+    )
+
+    return {
+        "posts": prepared_posts,
+        "page": page,
+        "limit": limit,
+        "has_more": has_more,
+        "next_page": page + 1 if has_more else None,
+    }
 
 
 @router.get("/my-posts", response_model=list[PostResponse])

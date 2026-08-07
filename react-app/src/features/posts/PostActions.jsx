@@ -64,30 +64,35 @@ function PostActions({
         </span>
       </button>
 
-      {/* Share Button */}
-      <button
-        type="button"
-        onClick={() => onShare(post.id)}
-        className="flex items-center justify-center gap-2 p-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-all duration-150 hover:text-indigo-600 active:scale-90 w-full"
-      >
-        <svg
-          className="h-4.5 w-4.5 stroke-current"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M8.684 10.742l4.636-2.318a4.5 4.5 0 110 7.152l-4.636-2.318a4.5 4.5 0 110-2.516z"
-          />
-        </svg>
+     {/* Share Button */}
+<button
+  type="button"
+  onClick={() => onShare(post.id)}
+  className="flex items-center justify-center gap-2 p-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-all duration-150 hover:text-indigo-600 active:scale-90 w-full"
+>
+  <svg
+    className="h-5 w-5 stroke-current"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M22 2L11 13"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M22 2L15 22L11 13L2 9L22 2Z"
+    />
+  </svg>
 
-        <span className="text-[10px] uppercase tracking-wider">
-          Share
-        </span>
-      </button>
+  <span className="text-[10px] uppercase tracking-wider">
+    Share
+  </span>
+</button>
     </div>
   );
 }

@@ -13,7 +13,7 @@ from typing import Optional, List
 
 from database import get_db
 from models import Post, User, PostMedia, Like, Comment, Follow
-from schemas import PostUpdate, PostResponse, UserResponse, FeedResponse
+from schemas import PostResponse, UserResponse, FeedResponse
 from auth import get_current_user
 from services.s3_service import upload_file_to_s3
 
@@ -384,9 +384,11 @@ def get_single_post(
 @router.put("/{post_id}", response_model=PostResponse)
 def update_post(
     post_id: int,
-    post_data: PostUpdate,
+    content: str = Form(""),
+    files: Optional[List[UploadFile]] = File(None),
+    removed_media_ids: List[int] = Form(default=[]),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     post = post_query_with_relations(db).filter(
         Post.id == post_id,
@@ -399,14 +401,56 @@ def update_post(
     if post.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only update your own post")
 
-    if post_data.content is not None:
-        post.content = post_data.content
+    # Validate first
+    if files:
+        for file in files:
+            validate_media_file(file)
 
-    if post_data.is_archived is not None:
-        post.is_archived = post_data.is_archived
+    post.content = content.strip()
 
-    db.commit()
-    db.refresh(post)
+    # Now remove media
+    if removed_media_ids:
+        db.query(PostMedia).filter(
+            PostMedia.post_id == post.id,
+            PostMedia.id.in_(removed_media_ids),
+        ).delete(synchronize_session=False)
+
+    db.flush()
+
+    remaining_media = db.query(PostMedia).filter(
+        PostMedia.post_id == post.id
+    ).count()
+
+    if (
+        not post.content
+        and remaining_media == 0
+        and not files
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Post cannot be empty"
+        )
+
+    try:
+        # Upload new files
+        if files:
+            for file in files:
+                file_url = upload_file_to_s3(file, "posts")
+
+                db.add(
+                    PostMedia(
+                        post_id=post.id,
+                        file_url=file_url,
+                        file_type=get_file_type(file.content_type),
+                    )
+                )
+
+        db.commit()
+        db.refresh(post)
+
+    except Exception:
+        db.rollback()
+        raise
 
     updated_post = post_query_with_relations(db).filter(
         Post.id == post.id

@@ -6,6 +6,10 @@ function PostList({
   editingPostId,
   editContent,
   setEditContent,
+  removedMediaIds,
+  setRemovedMediaIds,
+  selectedFiles,
+  setSelectedFiles,
   onStartEditing,
   onCancelEditing,
   onUpdatePost,
@@ -16,6 +20,7 @@ function PostList({
   onSharePost,
   onOpenComments,
   onOpenLikes,
+  onOpenPost,
   hasChanges,
   isSaving,
 }) {
@@ -39,6 +44,10 @@ function PostList({
           editingPostId={editingPostId}
           editContent={editContent}
           setEditContent={setEditContent}
+          removedMediaIds={removedMediaIds}
+          setRemovedMediaIds={setRemovedMediaIds}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
           onStartEditing={onStartEditing}
           onCancelEditing={onCancelEditing}
           onUpdatePost={onUpdatePost}
@@ -49,6 +58,7 @@ function PostList({
           onSharePost={onSharePost}
           onOpenComments={onOpenComments}
           onOpenLikes={onOpenLikes}
+          onOpenPost={onOpenPost}
           hasChanges={hasChanges}
           isSaving={isSaving}
         />

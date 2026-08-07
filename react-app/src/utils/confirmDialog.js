@@ -7,7 +7,7 @@ export async function showConfirmation({
   cancelButtonText = "Cancel",
   confirmButtonClass =
     "bg-red-600 hover:bg-red-700",
-  icon = "warning",
+  icon = "error",
 }) {
   return Swal.fire({
     title,

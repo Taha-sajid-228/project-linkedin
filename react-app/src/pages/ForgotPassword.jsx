@@ -11,6 +11,9 @@ function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [seconds, setSeconds] = useState(0);
 
+  const isRedirecting = !isError && message.includes("OTP sent");
+  const isFormDisabled = loading || isRedirecting;
+
   useEffect(() => {
     if (seconds <= 0) return;
 
@@ -24,7 +27,10 @@ function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (seconds > 0 || loading) return;
+    if (isFormDisabled || seconds > 0) return;
+
+    setMessage("");
+    setIsError(false);
 
     try {
       setLoading(true);
@@ -52,8 +58,15 @@ function ForgotPassword() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
-        {/* Custom Premium Logo */}
-        <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => navigate("/")}>
+        {/* Custom Premium Logo with disabled interaction during redirect */}
+        <div
+          className={`flex items-center gap-2 mb-6 ${
+            isRedirecting ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          }`}
+          onClick={() => {
+            if (!isRedirecting) navigate("/");
+          }}
+        >
           <svg className="w-9 h-9 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -81,12 +94,13 @@ function ForgotPassword() {
                 type="email"
                 placeholder="Email address"
                 value={email}
+                disabled={isFormDisabled}
                 onChange={(e) => {
-                  setEmail(e.target.value);
+                  setEmail(e.target.value.trimStart());
                   setMessage("");
                   setIsError(false);
                 }}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -94,8 +108,8 @@ function ForgotPassword() {
             <div>
               <button
                 type="submit"
-                disabled={loading || seconds > 0}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 cursor-pointer"
+                disabled={isFormDisabled || seconds > 0}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading
                   ? "Sending OTP..."
@@ -117,9 +131,13 @@ function ForgotPassword() {
           )}
 
           <div className="mt-8 text-center text-xs text-slate-500 font-semibold">
-            <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
-              Back to Login
-            </Link>
+            {isRedirecting ? (
+              <span className="text-slate-400 cursor-not-allowed">Back to Login</span>
+            ) : (
+              <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
+                Back to Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 
 import EditPost from "./EditPost";
@@ -11,15 +10,25 @@ function PostCard({
   editingPostId,
   editContent,
   setEditContent,
+  removedMediaIds,
+  setRemovedMediaIds,
+  selectedFiles,
+  setSelectedFiles,
   onStartEditing,
   onCancelEditing,
   onUpdatePost,
   onDeletePost,
   onArchivePost,
+  onUnarchivePost,
   onLikePost,
   onSharePost,
   onOpenComments,
   onOpenLikes,
+  onOpenPost,
+  hasChanges,
+  isSaving,
+  isModal = false,
+  onClose,
 }) {
   const navigate = useNavigate();
 
@@ -66,8 +75,35 @@ function PostCard({
     navigate(`/posts/${post.id}/likes`);
   };
 
+  const handleOpenPost = () => {
+    console.log("PostCard clicked");
+    console.log("parent onOpenPost:", onOpenPost);
+
+    if (onOpenPost) {
+      console.log("Sending post to Dashboard");
+      onOpenPost(post);
+    }
+  };
+
   return (
-    <article className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm">
+    <article
+      className={
+        isModal
+          ? "relative bg-white rounded-2xl shadow-xl w-full p-5 max-h-[90vh] overflow-y-auto"
+          : "bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm"
+      }
+    >
+      {isModal && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-colors cursor-pointer z-10"
+          aria-label="Close modal"
+        >
+          ✕
+        </button>
+      )}
+
       {isSharedPost && (
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 w-fit">
           <svg
@@ -75,12 +111,14 @@ function PostCard({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M17 2.1l4 4-4 4" />
-            <path d="M3 22v-6a4 4 0 0 1 4-4h14" />
+            <path d="M7 7h10l-2.5-2.5" />
+            <path d="M17 7l-2.5-2.5" />
+            <path d="M17 17H7l2.5 2.5" />
+            <path d="M7 17l2.5 2.5" />
           </svg>
 
           <span>
@@ -98,7 +136,7 @@ function PostCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 pr-8">
         <button
           type="button"
           onClick={goToAuthorProfile}
@@ -144,13 +182,23 @@ function PostCard({
               Edit
             </button>
 
-            <button
-              type="button"
-              onClick={() => onArchivePost(post.id)}
-              className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
-            >
-              Archive
-            </button>
+            {post.is_archived ? (
+              <button
+                type="button"
+                onClick={() => onUnarchivePost?.(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onArchivePost?.(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              >
+                Archive
+              </button>
+            )}
 
             <button
               type="button"
@@ -167,12 +215,24 @@ function PostCard({
         <EditPost
           editContent={editContent}
           setEditContent={setEditContent}
+          existingMedia={post.media || []}
+          removedMediaIds={removedMediaIds}
+          setRemovedMediaIds={setRemovedMediaIds}
+          newFiles={selectedFiles}
+          setNewFiles={setSelectedFiles}
           onSave={() => onUpdatePost(post.id)}
           onCancel={onCancelEditing}
+          hasChanges={hasChanges}
+          isSaving={isSaving}
         />
       ) : (
         post.content && (
-          <p className="text-sm text-slate-800 leading-relaxed mb-4 whitespace-pre-line font-medium">
+          <p
+            onClick={handleOpenPost}
+            className={`text-sm text-slate-800 leading-relaxed mb-4 whitespace-pre-line font-medium ${
+              !isModal ? "cursor-pointer" : ""
+            }`}
+          >
             {post.content}
           </p>
         )
@@ -221,15 +281,28 @@ function PostCard({
           </button>
 
           {post.original_post?.content && (
-            <p className="text-sm text-slate-700 leading-relaxed mb-4 whitespace-pre-line font-medium">
+            <p
+              onClick={handleOpenPost}
+              className={`text-sm text-slate-700 leading-relaxed mb-4 whitespace-pre-line font-medium ${
+                !isModal ? "cursor-pointer" : ""
+              }`}
+            >
               {post.original_post.content}
             </p>
           )}
 
-          <PostMedia media={post.original_post?.media || []} />
+          <PostMedia
+            media={post.original_post?.media || []}
+            onOpenPost={() => handleOpenPost()}
+          />
         </div>
       ) : (
-        <PostMedia media={post.media || []} />
+        editingPostId !== post.id && (
+          <PostMedia
+            media={post.media || []}
+            onOpenPost={() => handleOpenPost()}
+          />
+        )
       )}
 
       {/* Post statistics */}
@@ -237,9 +310,14 @@ function PostCard({
         <button
           type="button"
           onClick={handleOpenPostLikes}
-          className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
+          className="flex items-center gap-1 cursor-pointer hover:text-rose-500 transition-colors"
         >
-          👍 {post.likes_count || 0} likes
+          <span className="text-sm leading-none">❤️</span>
+
+          <span>
+            {post.likes_count || 0}{" "}
+            {post.likes_count === 1 ? "Like" : "Likes"}
+          </span>
         </button>
 
         <button
@@ -247,7 +325,7 @@ function PostCard({
           onClick={handleOpenPostComments}
           className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
         >
-          {post.comments_count || 0} comments • 0 shares
+          {post.comments_count || 0} Comments • {post.reshare_count || 0} Shares
         </button>
       </div>
 
@@ -262,4 +340,3 @@ function PostCard({
 }
 
 export default PostCard;
-

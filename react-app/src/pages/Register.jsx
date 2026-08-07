@@ -26,13 +26,13 @@ function Register() {
     }
   }, [searchParams]);
 
-const handleGoogleLogin = () => {
-  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google/register`;
-};
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google/register`;
+  };
 
-const handleGithubLogin = () => {
-  window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/register`;
-};
+  const handleGithubLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/github/register`;
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -124,7 +124,8 @@ const handleGithubLogin = () => {
                 value={formData.username}
                 onChange={handleChange}
                 minLength={6}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={loading}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -136,7 +137,8 @@ const handleGithubLogin = () => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={loading}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -149,7 +151,8 @@ const handleGithubLogin = () => {
                 value={formData.password}
                 onChange={handleChange}
                 minLength={8}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={loading}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -158,7 +161,7 @@ const handleGithubLogin = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 cursor-pointer"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? "Sending OTP..." : "Agree & Join"}
               </button>
@@ -179,7 +182,8 @@ const handleGithubLogin = () => {
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-900 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-98 cursor-pointer"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-900 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -193,7 +197,8 @@ const handleGithubLogin = () => {
               <button
                 type="button"
                 onClick={handleGithubLogin}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-900 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-98 cursor-pointer"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-900 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 <svg className="h-4 w-4 fill-slate-800" viewBox="0 0 16 16">
                   <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />

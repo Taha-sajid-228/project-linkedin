@@ -381,7 +381,7 @@ function DashboardNavbar({
             <button
               type="button"
               onClick={onLogout}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-all hover:border-red-150 hover:bg-red-50 hover:text-red-600 active:scale-95"
+              className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition-all hover:border-red-150 hover:bg-red-50 hover:text-red-600 active:scale-95"
             >
               Sign Out
             </button>

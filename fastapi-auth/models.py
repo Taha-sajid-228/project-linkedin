@@ -104,6 +104,20 @@ class User(Base):
         nullable=False
     )
 
+    # Counts consecutive wrong password attempts. Reset to 0 on successful login.
+    failed_login_attempts = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
+    # If set and in the future, the account is temporarily locked out of login.
+    # Automatically "unlocks" once the current time passes this value.
+    account_locked_until = Column(
+        DateTime,
+        nullable=True
+    )
+
     otp_code = Column(
         String,
         nullable=True
@@ -114,6 +128,13 @@ class User(Base):
         nullable=True
     )
 
+    # Counts wrong-attempt tries against otp_code (email verification flow).
+    otp_attempts = Column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+
     reset_otp = Column(
         String,
         nullable=True
@@ -122,6 +143,13 @@ class User(Base):
     reset_otp_expires_at = Column(
         DateTime,
         nullable=True
+    )
+
+    # Counts wrong-attempt tries against reset_otp (forgot-password flow).
+    reset_otp_attempts = Column(
+        Integer,
+        default=0,
+        nullable=False
     )
 
     provider = Column(

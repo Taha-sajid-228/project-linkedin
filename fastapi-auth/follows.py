@@ -5,11 +5,11 @@ from fastapi import (
     Query,
     status,
 )
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, aliased
 
 from database import get_db
-from models import Follow, User
+from models import Follow, Friendship, User
 from auth import get_current_user
 from schemas import (
     DiscoverUserResponse,
@@ -26,6 +26,57 @@ router = APIRouter(
     prefix="/users",
     tags=["Follow System"],
 )
+
+
+# ==========================
+# Helper: Friendship Info
+# ==========================
+
+def get_friendship_info(
+    db: Session,
+    current_user_id: int,
+    other_user_id: int,
+):
+    """
+    Return (friendship_status, is_friend) between two users.
+
+    friendship_status is one of:
+    none | pending_sent | pending_received | accepted | rejected
+    """
+
+    if current_user_id == other_user_id:
+        return "none", False
+
+    relationship = (
+        db.query(Friendship)
+        .filter(
+            or_(
+                and_(
+                    Friendship.sender_id == current_user_id,
+                    Friendship.receiver_id == other_user_id,
+                ),
+                and_(
+                    Friendship.sender_id == other_user_id,
+                    Friendship.receiver_id == current_user_id,
+                ),
+            )
+        )
+        .first()
+    )
+
+    if not relationship:
+        return "none", False
+
+    if relationship.status == "accepted":
+        return "accepted", True
+
+    if relationship.status == "pending":
+        if relationship.sender_id == current_user_id:
+            return "pending_sent", False
+        else:
+            return "pending_received", False
+
+    return relationship.status, False
 
 
 # ==========================
@@ -57,6 +108,8 @@ def get_all_users(
     - Whether the current user follows each user
     - Whether each user follows the current user
     - Each user's followers count
+    - The friendship status and is_friend flag between the
+      current user and each listed user
     - Pagination information
     """
 
@@ -138,6 +191,12 @@ def get_all_users(
         follow_relationship_id,
         reverse_follow_relationship_id,
     ) in user_records:
+        friendship_status, is_friend = get_friendship_info(
+            db=db,
+            current_user_id=current_user.id,
+            other_user_id=user.id,
+        )
+
         users.append(
             DiscoverUserResponse(
                 id=user.id,
@@ -153,6 +212,8 @@ def get_all_users(
                     is not None
                 ),
                 followers_count=followers_count,
+                friendship_status=friendship_status,
+                is_friend=is_friend,
             )
         )
 
@@ -162,6 +223,197 @@ def get_all_users(
         limit=limit,
         offset=offset,
         has_more=offset + len(users) < total,
+    )
+
+
+# ==========================
+# Suggested Users
+# ==========================
+
+@router.get(
+    "/suggestions",
+    response_model=DiscoverUsersResponse,
+)
+def get_suggested_users(
+    limit: int = Query(
+        default=5,
+        ge=1,
+        le=50,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return a random selection of users to suggest to the current
+    user, excluding the current user and users they are already
+    friends with (accepted friendships).
+    """
+
+    accepted_friendships = (
+        db.query(Friendship)
+        .filter(
+            Friendship.status == "accepted",
+            or_(
+                Friendship.sender_id == current_user.id,
+                Friendship.receiver_id == current_user.id,
+            ),
+        )
+        .all()
+    )
+
+    friend_ids = set()
+
+    for friendship in accepted_friendships:
+        other_id = (
+            friendship.receiver_id
+            if friendship.sender_id == current_user.id
+            else friendship.sender_id
+        )
+        friend_ids.add(other_id)
+
+    candidates_query = db.query(User).filter(
+        User.id != current_user.id
+    )
+
+    if friend_ids:
+        candidates_query = candidates_query.filter(
+            ~User.id.in_(friend_ids)
+        )
+
+    # NOTE: func.random() works on PostgreSQL and SQLite.
+    # If the project uses MySQL, replace with func.rand().
+    candidates = (
+        candidates_query
+        .order_by(func.random())
+        .limit(limit)
+        .all()
+    )
+
+    candidate_ids = [user.id for user in candidates]
+
+    # ----------------------------------
+    # Batch: followers_count per candidate
+    # ----------------------------------
+    followers_count_map = {}
+
+    if candidate_ids:
+        followers_count_rows = (
+            db.query(
+                Follow.following_id,
+                func.count(Follow.id),
+            )
+            .filter(Follow.following_id.in_(candidate_ids))
+            .group_by(Follow.following_id)
+            .all()
+        )
+
+        followers_count_map = dict(followers_count_rows)
+
+    # ----------------------------------
+    # Batch: which candidates does the
+    # current user already follow?
+    # ----------------------------------
+    following_ids = set()
+
+    if candidate_ids:
+        following_rows = (
+            db.query(Follow.following_id)
+            .filter(
+                Follow.follower_id == current_user.id,
+                Follow.following_id.in_(candidate_ids),
+            )
+            .all()
+        )
+
+        following_ids = {row[0] for row in following_rows}
+
+    # ----------------------------------
+    # Batch: which candidates already
+    # follow the current user back?
+    # ----------------------------------
+    follows_you_ids = set()
+
+    if candidate_ids:
+        follows_you_rows = (
+            db.query(Follow.follower_id)
+            .filter(
+                Follow.follower_id.in_(candidate_ids),
+                Follow.following_id == current_user.id,
+            )
+            .all()
+        )
+
+        follows_you_ids = {row[0] for row in follows_you_rows}
+
+    # ----------------------------------
+    # Batch: friendship status against
+    # each candidate
+    # ----------------------------------
+    friendship_map = {}
+
+    if candidate_ids:
+        friendship_rows = (
+            db.query(Friendship)
+            .filter(
+                or_(
+                    and_(
+                        Friendship.sender_id == current_user.id,
+                        Friendship.receiver_id.in_(candidate_ids),
+                    ),
+                    and_(
+                        Friendship.receiver_id == current_user.id,
+                        Friendship.sender_id.in_(candidate_ids),
+                    ),
+                )
+            )
+            .all()
+        )
+
+        for friendship in friendship_rows:
+            other_id = (
+                friendship.receiver_id
+                if friendship.sender_id == current_user.id
+                else friendship.sender_id
+            )
+
+            if friendship.status == "accepted":
+                friendship_map[other_id] = ("accepted", True)
+            elif friendship.status == "pending":
+                if friendship.sender_id == current_user.id:
+                    friendship_map[other_id] = ("pending_sent", False)
+                else:
+                    friendship_map[other_id] = ("pending_received", False)
+            else:
+                friendship_map[other_id] = (friendship.status, False)
+
+    users = []
+
+    for user in candidates:
+        friendship_status, is_friend = friendship_map.get(
+            user.id, ("none", False)
+        )
+
+        users.append(
+            DiscoverUserResponse(
+                id=user.id,
+                username=user.username,
+                name=user.name,
+                profile_picture=user.profile_picture,
+                bio=user.bio,
+                is_following=user.id in following_ids,
+                follows_you=user.id in follows_you_ids,
+                followers_count=followers_count_map.get(user.id, 0),
+                friendship_status=friendship_status,
+                is_friend=is_friend,
+            )
+        )
+
+    return DiscoverUsersResponse(
+        users=users,
+        total=len(users),
+        limit=limit,
+        offset=0,
+        has_more=False,
     )
 
 

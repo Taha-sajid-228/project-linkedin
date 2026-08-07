@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DashboardNavbar from "../components/DashboardNavbar";
@@ -9,16 +10,21 @@ import NewsSidebar from "../features/dashboard/NewsSidebar";
 
 import CreatePost from "../features/posts/CreatePost";
 import PostList from "../features/posts/PostList";
+import PostModal from "../features/posts/PostModal";
 
 import useDashboard from "../hooks/useDashboard";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [selectedPost, setSelectedPost] = useState(null);
 
   const {
     user,
     loading,
     error,
+
+    suggestedUsers,
+    handleAddFriend,
 
     posts,
     postContent,
@@ -30,6 +36,10 @@ function Dashboard() {
     editingPostId,
     editContent,
     setEditContent,
+    selectedFiles,
+    setSelectedFiles,
+    removedMediaIds,
+    setRemovedMediaIds,
 
     handleCreatePost,
     handleSharePost,
@@ -52,6 +62,15 @@ function Dashboard() {
 
   const handleOpenLikes = (postId) => {
     navigate(`/posts/${postId}/likes`);
+  };
+
+  const handleOpenPost = (post) => {
+    console.log("Opening post", post);
+    setSelectedPost(post);
+  };
+
+  const handleClosePost = () => {
+    setSelectedPost(null);
   };
 
   if (loading) {
@@ -90,6 +109,10 @@ function Dashboard() {
             editingPostId={editingPostId}
             editContent={editContent}
             setEditContent={setEditContent}
+            removedMediaIds={removedMediaIds}
+            setRemovedMediaIds={setRemovedMediaIds}
+            selectedFiles={selectedFiles}
+            setSelectedFiles={setSelectedFiles}
             onStartEditing={startEditing}
             onCancelEditing={cancelEditing}
             onUpdatePost={handleUpdatePost}
@@ -100,13 +123,29 @@ function Dashboard() {
             onSharePost={handleSharePost}
             onOpenComments={handleOpenComments}
             onOpenLikes={handleOpenLikes}
+            onOpenPost={handleOpenPost}
             hasChanges={hasChanges}
             isSaving={isSaving}
           />
         </section>
 
-        <NewsSidebar />
+        <NewsSidebar
+          suggestedUsers={suggestedUsers}
+          onAddFriend={handleAddFriend}
+        />
       </main>
+
+      {selectedPost && (
+        <PostModal
+          post={selectedPost}
+          user={user}
+          onClose={handleClosePost}
+          onLikePost={handleLikePost}
+          onSharePost={handleSharePost}
+          onOpenComments={handleOpenComments}
+          onOpenLikes={handleOpenLikes}
+        />
+      )}
     </div>
   );
 }

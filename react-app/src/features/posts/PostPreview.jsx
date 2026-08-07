@@ -65,7 +65,7 @@ function PostPreview({
             {previewMedia.length > 0 && <PostMedia media={previewMedia} />}
 
             <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-100 pt-3.5 mt-3.5">
-              <span>👍 0 Likes</span>
+              <span>❤️0 Likes</span>
               <span>0 Comments • 0 Shares</span>
             </div>
           </div>

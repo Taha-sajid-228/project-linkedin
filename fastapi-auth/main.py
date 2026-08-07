@@ -17,7 +17,7 @@ from friends import router as friends_router
 from chat import router as chat_router
 from admin import router as admin_router
 from database import engine, Base
-
+from routes import users
 import models
 
 
@@ -67,7 +67,10 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 
+
+
 # Register routers
+app.include_router(users.router)
 app.include_router(auth_router)
 app.include_router(oauth_router)
 app.include_router(posts_router)

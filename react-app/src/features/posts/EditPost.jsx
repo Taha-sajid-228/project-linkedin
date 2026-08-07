@@ -1,8 +1,19 @@
+import MediaPicker from "./MediaPicker";
+
 function EditPost({
   editContent,
   setEditContent,
+
+  existingMedia,
+  removedMediaIds,
+  setRemovedMediaIds,
+
+  newFiles,
+  setNewFiles,
+
   onSave,
   onCancel,
+
   hasChanges,
   isSaving,
 }) {
@@ -13,6 +24,15 @@ function EditPost({
         onChange={(e) => setEditContent(e.target.value)}
         rows="3"
         className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-800 outline-none resize-none transition-all duration-200"
+      />
+
+      <MediaPicker
+        mode="edit"
+        existingMedia={existingMedia}
+        removedMediaIds={removedMediaIds}
+        setRemovedMediaIds={setRemovedMediaIds}
+        selectedFiles={newFiles}
+        setSelectedFiles={setNewFiles}
       />
 
       <div className="flex gap-2 mt-2">

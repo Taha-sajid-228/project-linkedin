@@ -11,8 +11,10 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from jose import jwt
 
+from sqlalchemy import or_
+
 from database import get_db
-from models import User
+from models import User, Follow, Friendship
 from services.s3_service import upload_file_to_s3
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -27,6 +29,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-jwt-signing")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 OTP_EXPIRE_MINUTES = 5
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+ACCOUNT_LOCK_MINUTES = 15
+MAX_OTP_ATTEMPTS = 5
 
 EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -112,6 +117,10 @@ def register(
         existing_user.provider = "email"
         existing_user.provider_id = None
         existing_user.profile_picture = None
+        existing_user.failed_login_attempts = 0
+        existing_user.account_locked_until = None
+        existing_user.otp_attempts = 0
+        existing_user.reset_otp_attempts = 0
 
         db.commit()
         db.refresh(existing_user)
@@ -150,7 +159,11 @@ def register(
         otp_expires_at=datetime.utcnow() + timedelta(minutes=OTP_EXPIRE_MINUTES),
         provider="email",
         provider_id=None,
-        profile_picture=None
+        profile_picture=None,
+        failed_login_attempts=0,
+        account_locked_until=None,
+        otp_attempts=0,
+        reset_otp_attempts=0
     )
 
     db.add(new_user)
@@ -198,12 +211,33 @@ def verify_otp(
     if datetime.utcnow() > user.otp_expires_at:
         raise HTTPException(status_code=400, detail="OTP has expired. Please resend OTP.")
 
+    if user.otp_attempts >= MAX_OTP_ATTEMPTS:
+        raise HTTPException(
+            status_code=403,
+            detail="Too many incorrect OTP attempts. Wait until the OTP expires and request a new OTP."
+        )
+
     if user.otp_code != otp_stripped:
-        raise HTTPException(status_code=400, detail="Invalid OTP.")
+        user.otp_attempts += 1
+        db.commit()
+
+        if user.otp_attempts >= MAX_OTP_ATTEMPTS:
+            raise HTTPException(
+                status_code=403,
+                detail="Too many incorrect OTP attempts. Wait until the OTP expires and request a new OTP."
+            )
+
+        remaining = MAX_OTP_ATTEMPTS - user.otp_attempts
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid OTP. {remaining} attempt(s) remaining."
+        )
 
     user.is_verified = True
     user.otp_code = None
     user.otp_expires_at = None
+    user.otp_attempts = 0
 
     db.commit()
     db.refresh(user)
@@ -228,6 +262,7 @@ def resend_otp(
     otp = generate_otp()
     user.otp_code = otp
     user.otp_expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRE_MINUTES)
+    user.otp_attempts = 0
 
     db.commit()
     db.refresh(user)
@@ -266,6 +301,7 @@ def forgot_password(
 
     user.reset_otp = otp
     user.reset_otp_expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRE_MINUTES)
+    user.reset_otp_attempts = 0
 
     db.commit()
     db.refresh(user)
@@ -309,12 +345,37 @@ def reset_password(
     if datetime.utcnow() > user.reset_otp_expires_at:
         raise HTTPException(status_code=400, detail="Reset OTP has expired. Please request again.")
 
+    if user.reset_otp_attempts >= MAX_OTP_ATTEMPTS:
+        raise HTTPException(
+            status_code=403,
+            detail="Too many incorrect OTP attempts. Wait until the OTP expires and request another one."
+        )
+
     if user.reset_otp != otp_stripped:
-        raise HTTPException(status_code=400, detail="Invalid reset OTP.")
+        user.reset_otp_attempts += 1
+        db.commit()
+
+        if user.reset_otp_attempts >= MAX_OTP_ATTEMPTS:
+            raise HTTPException(
+                status_code=403,
+                detail="Too many incorrect OTP attempts. Wait until the OTP expires and request another one."
+            )
+
+        remaining = MAX_OTP_ATTEMPTS - user.reset_otp_attempts
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid reset OTP. {remaining} attempt(s) remaining."
+        )
 
     user.password = pwd_context.hash(new_password)
+
+    user.failed_login_attempts = 0
+    user.account_locked_until = None
+
     user.reset_otp = None
     user.reset_otp_expires_at = None
+    user.reset_otp_attempts = 0
 
     db.commit()
     db.refresh(user)
@@ -331,8 +392,27 @@ def login(
     email_stripped = email.strip().lower()
     user = db.query(User).filter(User.email == email_stripped).first()
 
+    # Check whether the account is temporarily locked.
+    if (
+        user
+        and user.account_locked_until
+        and datetime.utcnow() < user.account_locked_until
+    ):
+        remaining_minutes = int(
+            (user.account_locked_until - datetime.utcnow()).total_seconds() // 60
+        ) + 1
+
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Too many failed login attempts. "
+                f"Try again in {remaining_minutes} minute(s) "
+                f"or reset your password."
+            )
+        )
+
     if not user:
-        raise HTTPException(status_code=400, detail="User not found.")
+        raise HTTPException(status_code=400, detail="invalid password or email.")
 
     if user.provider != "email":
         raise HTTPException(
@@ -341,7 +421,27 @@ def login(
         )
 
     if not user.password or not pwd_context.verify(password, user.password):
-        raise HTTPException(status_code=400, detail="Invalid password.")
+        user.failed_login_attempts += 1
+
+        if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+            user.account_locked_until = datetime.utcnow() + timedelta(minutes=ACCOUNT_LOCK_MINUTES)
+            db.commit()
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Too many failed login attempts. Your account has been locked "
+                    f"for {ACCOUNT_LOCK_MINUTES} minutes or until you reset your password."
+                )
+            )
+
+        db.commit()
+
+        remaining = MAX_FAILED_LOGIN_ATTEMPTS - user.failed_login_attempts
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid password or email. {remaining} attempt(s) remaining."
+        )
 
     if not user.is_verified:
         raise HTTPException(status_code=400, detail="Please verify your email with OTP first.")
@@ -351,6 +451,13 @@ def login(
             status_code=403,
             detail="Your account has been blocked by an administrator."
         )
+
+    # Successful login — reset lockout counters.
+    user.failed_login_attempts = 0
+    user.account_locked_until = None
+
+    db.commit()
+    db.refresh(user)
 
     access_token = create_access_token(
         data={
@@ -407,7 +514,33 @@ def get_admin_user(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/me")
-def read_users_me(current_user: User = Depends(get_current_user)):
+def read_users_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    followers_count = (
+        db.query(Follow)
+        .filter(Follow.following_id == current_user.id)
+        .count()
+    )
+    following_count = (
+        db.query(Follow)
+        .filter(Follow.follower_id == current_user.id)
+        .count()
+    )
+
+    friends_count = (
+        db.query(Friendship)
+        .filter(
+            Friendship.status == "accepted",
+            or_(
+                Friendship.sender_id == current_user.id,
+                Friendship.receiver_id == current_user.id,
+            ),
+        )
+        .count()
+    )
+
     return {
         "id": current_user.id,
         "name": current_user.name,
@@ -417,7 +550,10 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "bio": current_user.bio,
         "profile_picture": current_user.profile_picture,
         "provider": current_user.provider,
-        "is_verified": current_user.is_verified
+        "is_verified": current_user.is_verified,
+        "followers_count": followers_count,
+        "following_count": following_count,
+        "friends_count": friends_count,
     }
 
 
@@ -474,12 +610,38 @@ def get_user_profile(
             detail="User not found"
         )
 
+    followers_count = (
+        db.query(Follow)
+        .filter(Follow.following_id == user.id)
+        .count()
+    )
+    following_count = (
+        db.query(Follow)
+        .filter(Follow.follower_id == user.id)
+        .count()
+    )
+
+    friends_count = (
+        db.query(Friendship)
+        .filter(
+            Friendship.status == "accepted",
+            or_(
+                Friendship.sender_id == user.id,
+                Friendship.receiver_id == user.id,
+            ),
+        )
+        .count()
+    )
+
     return {
         "id": user.id,
         "name": user.name,
         "username": user.username,
         "bio": user.bio,
         "profile_picture": user.profile_picture,
+        "followers_count": followers_count,
+        "following_count": following_count,
+        "friends_count": friends_count,
     }
 
 

@@ -5,6 +5,16 @@ import toast from "react-hot-toast";
 import API from "../api/axios";
 import { showConfirmation } from "../utils/confirmDialog";
 
+// Helper function to safely parse API error details as strings
+const getErrorMessage = (err, fallbackMessage) => {
+  const detail = err.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail[0]?.msg || fallbackMessage;
+  }
+  return fallbackMessage;
+};
+
 function useDashboard() {
   const navigate = useNavigate();
 
@@ -12,6 +22,10 @@ function useDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Suggested Users State
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
 
   // Feed State
   const [posts, setPosts] = useState([]);
@@ -29,11 +43,17 @@ function useDashboard() {
   const [editContent, setEditContent] = useState("");
   const [originalContent, setOriginalContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [removedMediaIds, setRemovedMediaIds] = useState([]);
 
   // Concurrency Guard
   const feedRequestRunning = useRef(false);
 
-  const hasChanges = editContent.trim() !== originalContent.trim();
+  const hasChanges =
+    editContent.trim() !== originalContent.trim() ||
+    selectedFiles.length > 0 ||
+    removedMediaIds.length > 0;
+
   const allowedFileTypes = ["image/", "video/"];
 
   const validatePostFiles = (files) => {
@@ -72,10 +92,24 @@ function useDashboard() {
       setHasMore(Boolean(response.data?.has_more));
     } catch (err) {
       console.error("Failed to fetch personalized feed:", err);
-      toast.error(err.response?.data?.detail || "Failed to load feed.");
+      toast.error(getErrorMessage(err, "Failed to load feed."));
     } finally {
       feedRequestRunning.current = false;
       setFeedLoading(false);
+    }
+  }, []);
+
+  // Fetch Suggested Users - Safe string parsing prevents white screen crash
+  const fetchSuggestedUsers = useCallback(async () => {
+    try {
+      setSuggestionsLoading(true);
+      const response = await API.get("/users/suggestions");
+      setSuggestedUsers(response.data || []);
+    } catch (err) {
+      console.error("Failed to fetch suggested users:", err);
+      toast.error(getErrorMessage(err, "Failed to load suggestions."));
+    } finally {
+      setSuggestionsLoading(false);
     }
   }, []);
 
@@ -90,7 +124,7 @@ function useDashboard() {
     fetchPosts(page + 1, false);
   }, [fetchPosts, hasMore, page]);
 
-  // Initial Authentication & Bootstrap Effect
+  // Initial Authentication & Parallel Data Bootstrap
   useEffect(() => {
     let isMounted = true;
 
@@ -110,8 +144,8 @@ function useDashboard() {
         setUser(response.data);
         localStorage.setItem("user", JSON.stringify(response.data));
 
-        // Fetch feed directly after successfully resolving user session
-        await fetchPosts(1, true);
+        // Fetch feed and suggestions in parallel
+        await Promise.all([fetchPosts(1, true), fetchSuggestedUsers()]);
       } catch (err) {
         if (!isMounted) return;
 
@@ -133,9 +167,31 @@ function useDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [fetchPosts, navigate]);
+  }, [fetchPosts, fetchSuggestedUsers, navigate]);
 
-  // Handlers
+  // Optimized Friend Request Handler
+  const handleAddFriend = useCallback(async (userId) => {
+    try {
+      await API.post(`/friends/request/${userId}`);
+      toast.success("Friend request sent.");
+
+      setSuggestedUsers((previousUsers) =>
+        previousUsers.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                friendship_status: "pending_sent",
+              }
+            : u
+        )
+      );
+    } catch (err) {
+      console.error("Failed to send friend request:", err);
+      toast.error(getErrorMessage(err, "Failed to send friend request."));
+    }
+  }, []);
+
+  // Post Handlers
   const handleCreatePost = async (e) => {
     e.preventDefault();
 
@@ -171,7 +227,7 @@ function useDashboard() {
       await refreshFeed();
     } catch (err) {
       console.error("Failed to create post:", err);
-      toast.error(err.response?.data?.detail || "Failed to create post");
+      toast.error(getErrorMessage(err, "Failed to create post"));
     } finally {
       setPostLoading(false);
     }
@@ -190,7 +246,7 @@ function useDashboard() {
       await refreshFeed();
     } catch (err) {
       console.error("Failed to share post:", err);
-      toast.error(err.response?.data?.detail || "Failed to share post");
+      toast.error(getErrorMessage(err, "Failed to share post"));
     }
   };
 
@@ -207,17 +263,11 @@ function useDashboard() {
 
     try {
       await API.delete(`/posts/${postId}`);
-
       toast.success("Post deleted successfully.");
-
       await refreshFeed();
     } catch (err) {
       console.error("Failed to delete post:", err);
-
-      toast.error(
-        err.response?.data?.detail ||
-          "Failed to delete the post."
-      );
+      toast.error(getErrorMessage(err, "Failed to delete the post."));
     }
   };
 
@@ -226,8 +276,7 @@ function useDashboard() {
       title: "Archive this post?",
       text: "The post will be hidden from the feed but will remain available on your profile.",
       confirmButtonText: "Archive",
-      confirmButtonClass:
-        "bg-yellow-600 hover:bg-yellow-700",
+      confirmButtonClass: "bg-yellow-600 hover:bg-yellow-700",
     });
 
     if (!result.isConfirmed) {
@@ -236,17 +285,11 @@ function useDashboard() {
 
     try {
       await API.patch(`/posts/${postId}/archive`);
-
       toast.success("Post archived successfully.");
-
       await refreshFeed();
     } catch (err) {
       console.error("Failed to archive post:", err);
-
-      toast.error(
-        err.response?.data?.detail ||
-          "Failed to archive the post."
-      );
+      toast.error(getErrorMessage(err, "Failed to archive the post."));
     }
   };
 
@@ -255,8 +298,7 @@ function useDashboard() {
       title: "Restore this post?",
       text: "The post will become visible in the feed again.",
       confirmButtonText: "Restore",
-      confirmButtonClass:
-        "bg-indigo-600 hover:bg-indigo-700",
+      confirmButtonClass: "bg-indigo-600 hover:bg-indigo-700",
     });
 
     if (!result.isConfirmed) {
@@ -265,17 +307,11 @@ function useDashboard() {
 
     try {
       await API.patch(`/posts/${postId}/unarchive`);
-
       toast.success("Post restored successfully.");
-
       await refreshFeed();
     } catch (err) {
       console.error("Failed to restore post:", err);
-
-      toast.error(
-        err.response?.data?.detail ||
-          "Failed to restore the post."
-      );
+      toast.error(getErrorMessage(err, "Failed to restore the post."));
     }
   };
 
@@ -296,7 +332,7 @@ function useDashboard() {
       );
     } catch (err) {
       console.error("Failed to like post:", err);
-      toast.error(err.response?.data?.detail || "Failed to like post");
+      toast.error(getErrorMessage(err, "Failed to like post"));
     }
   };
 
@@ -305,66 +341,89 @@ function useDashboard() {
     setEditingPostId(post.id);
     setEditContent(post.content || "");
     setOriginalContent(post.content || "");
+    setSelectedFiles([]);
+    setRemovedMediaIds([]);
   };
 
   const cancelEditing = () => {
     setEditingPostId(null);
     setEditContent("");
     setOriginalContent("");
+    setSelectedFiles([]);
+    setRemovedMediaIds([]);
   };
 
   const handleUpdatePost = async (postId) => {
-    if (editContent.trim() === originalContent.trim()) {
+    if (!hasChanges) {
       cancelEditing();
       return;
     }
 
-    if (!editContent.trim()) {
-      toast.error("Post content cannot be empty.");
+    if (
+      !editContent.trim() &&
+      selectedFiles.length === 0 &&
+      removedMediaIds.length === 0
+    ) {
+      toast.error("Post cannot be empty.");
       return;
     }
 
     try {
       setIsSaving(true);
 
-      await API.put(`/posts/${postId}`, {
-        content: editContent.trim(),
+      const formData = new FormData();
+
+      formData.append("content", editContent.trim());
+
+      selectedFiles.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      removedMediaIds.forEach((id) => {
+        formData.append("removed_media_ids", id);
+      });
+
+      await API.put(`/posts/${postId}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       toast.success("Post updated successfully.");
+
       cancelEditing();
+
       await refreshFeed();
     } catch (err) {
-      console.error("Failed to update post:", err);
-      toast.error(err.response?.data?.detail || "Failed to update post");
+      console.error(err);
+      toast.error(getErrorMessage(err, "Failed to update post"));
     } finally {
       setIsSaving(false);
     }
   };
 
-const handleLogout = async () => {
-  const result = await showConfirmation({
-    title: "Logout?",
-    text: "Are you sure you want to logout from your account?",
-    confirmButtonText: "Logout",
-    confirmButtonClass:
-      "bg-red-600 hover:bg-red-700",
-  });
+  const handleLogout = async () => {
+    const result = await showConfirmation({
+      title: "Logout?",
+      text: "Are you sure you want to logout from your account?",
+      confirmButtonText: "Logout",
+      confirmButtonClass: "bg-red-600 hover:bg-red-700",
+    });
 
-  if (!result.isConfirmed) {
-    return;
-  }
+    if (!result.isConfirmed) {
+      return;
+    }
 
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("role");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
 
-  toast.success("Logged out successfully.");
+    toast.success("Logged out successfully.");
 
-  navigate("/login", {
-    replace: true,
-  });
-};
+    navigate("/login", {
+      replace: true,
+    });
+  };
 
   const goToProfile = () => {
     navigate("/profile");
@@ -374,6 +433,10 @@ const handleLogout = async () => {
     user,
     loading,
     error,
+
+    suggestedUsers,
+    suggestionsLoading,
+    fetchSuggestedUsers,
 
     posts,
     postContent,
@@ -394,7 +457,12 @@ const handleLogout = async () => {
     originalContent,
     isSaving,
     hasChanges,
+    selectedFiles,
+    setSelectedFiles,
+    removedMediaIds,
+    setRemovedMediaIds,
 
+    handleAddFriend,
     handleCreatePost,
     handleSharePost,
     handleDeletePost,

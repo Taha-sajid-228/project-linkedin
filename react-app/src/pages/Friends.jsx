@@ -12,6 +12,7 @@ import {
   removeFriend,
 } from "../api/friends";
 import { createConversation } from "../api/chat";
+import { showConfirmation } from "../utils/confirmDialog";
 
 
 function Friends() {
@@ -66,6 +67,9 @@ function Friends() {
         requestError.response?.data?.detail ||
         "Failed to load friend data.";
 
+      setReceivedRequests([]);
+      setSentRequests([]);
+      setFriends([]);
       setError(message);
     } finally {
       setLoading(false);
@@ -187,11 +191,14 @@ function Friends() {
   const handleRemoveFriend = async (
     userId
   ) => {
-    const shouldRemove = window.confirm(
-      "Are you sure you want to remove this friend?"
-    );
+    const result = await showConfirmation({
+      title: "Remove this friend?",
+      text: "This user will be removed from your friends list.",
+      confirmButtonText: "Remove",
+      confirmButtonClass: "bg-red-600 hover:bg-red-700",
+    });
 
-    if (!shouldRemove) {
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -331,7 +338,8 @@ function Friends() {
           <button
             type="button"
             onClick={fetchFriendData}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg
               className="h-4 w-4"
@@ -346,7 +354,7 @@ function Friends() {
               <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5" />
             </svg>
 
-            Refresh
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
@@ -409,7 +417,8 @@ function Friends() {
                           )
                         }
                         disabled={
-                          actionLoading !== null
+                          actionLoading ===
+                          `accept-${request.id}`
                         }
                         className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -427,7 +436,8 @@ function Friends() {
                           )
                         }
                         disabled={
-                          actionLoading !== null
+                          actionLoading ===
+                          `reject-${request.id}`
                         }
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -471,7 +481,8 @@ function Friends() {
                           )
                         }
                         disabled={
-                          actionLoading !== null
+                          actionLoading ===
+                          `cancel-${request.id}`
                         }
                         className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -524,7 +535,8 @@ function Friends() {
                           )
                         }
                         disabled={
-                          actionLoading !== null
+                          actionLoading ===
+                          `chat-${friendship.user.id}`
                         }
                         className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -542,7 +554,8 @@ function Friends() {
                           )
                         }
                         disabled={
-                          actionLoading !== null
+                          actionLoading ===
+                          `remove-${friendship.user.id}`
                         }
                         className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >

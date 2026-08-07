@@ -190,6 +190,79 @@ def send_friend_request(
 
 
 # ==========================
+# Friendship Status With Another User
+# ==========================
+
+@router.get(
+    "/status/{user_id}",
+)
+def get_friendship_status(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return the friendship status between the current user and
+    another user, along with an is_friend flag used by the
+    frontend to decide whether to show the Message button.
+
+    Possible "status" values:
+    - none              -> no relationship exists
+    - pending_sent       -> current user sent a pending request
+    - pending_received   -> current user received a pending request
+    - accepted           -> users are friends
+    - rejected           -> a previous request was rejected
+    """
+
+    if user_id == current_user.id:
+        return {
+            "status": "none",
+            "friendship_id": None,
+            "is_friend": False,
+        }
+
+    relationship = get_relationship_between_users(
+        db=db,
+        first_user_id=current_user.id,
+        second_user_id=user_id,
+    )
+
+    if not relationship:
+        return {
+            "status": "none",
+            "friendship_id": None,
+            "is_friend": False,
+        }
+
+    if relationship.status == "accepted":
+        return {
+            "status": "accepted",
+            "friendship_id": relationship.id,
+            "is_friend": True,
+        }
+
+    if relationship.status == "pending":
+        if relationship.sender_id == current_user.id:
+            return {
+                "status": "pending_sent",
+                "friendship_id": relationship.id,
+                "is_friend": False,
+            }
+        else:
+            return {
+                "status": "pending_received",
+                "friendship_id": relationship.id,
+                "is_friend": False,
+            }
+
+    return {
+        "status": relationship.status,
+        "friendship_id": relationship.id,
+        "is_friend": False,
+    }
+
+
+# ==========================
 # Received Friend Requests
 # ==========================
 

@@ -17,6 +17,9 @@ function VerifyOtp() {
   const [resendLoading, setResendLoading] = useState(false);
   const [seconds, setSeconds] = useState(0);
 
+  const isRedirecting = !isError && message.includes("Redirecting");
+  const isFormDisabled = loading || resendLoading || isRedirecting;
+
   const getStorageKey = (emailValue) => {
     return `verify_otp_timer_${emailValue.trim().toLowerCase()}`;
   };
@@ -60,6 +63,11 @@ function VerifyOtp() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
 
+    if (loading || resendLoading || isRedirecting) return;
+
+    setMessage("");
+    setIsError(false);
+
     if (!email.trim()) {
       setIsError(true);
       setMessage("Email is required.");
@@ -98,7 +106,10 @@ function VerifyOtp() {
   };
 
   const handleResendOtp = async () => {
-    if (seconds > 0 || resendLoading) return;
+    if (seconds > 0 || resendLoading || loading || isRedirecting) return;
+
+    setMessage("");
+    setIsError(false);
 
     if (!email.trim()) {
       setIsError(true);
@@ -157,12 +168,13 @@ function VerifyOtp() {
                 type="email"
                 placeholder="Email Address"
                 value={email}
+                disabled={isFormDisabled}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setMessage("");
                   setIsError(false);
                 }}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -172,6 +184,7 @@ function VerifyOtp() {
                 type="text"
                 placeholder="000000"
                 value={otp}
+                disabled={isFormDisabled}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, "");
                   setOtp(value.slice(0, 6));
@@ -179,7 +192,7 @@ function VerifyOtp() {
                   setIsError(false);
                 }}
                 maxLength={6}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-300 rounded-xl px-4 py-3.5 text-center text-2xl tracking-[16px] font-black text-slate-900 outline-none transition-all duration-200"
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-300 rounded-xl px-4 py-3.5 text-center text-2xl tracking-[16px] font-black text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -187,8 +200,8 @@ function VerifyOtp() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 cursor-pointer"
+                disabled={isFormDisabled}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
@@ -210,8 +223,8 @@ function VerifyOtp() {
             <button
               type="button"
               onClick={handleResendOtp}
-              disabled={seconds > 0 || resendLoading}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:text-slate-300 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              disabled={seconds > 0 || resendLoading || loading || isRedirecting}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:text-slate-300 disabled:cursor-not-allowed transition-colors"
             >
               {resendLoading
                 ? "Sending..."

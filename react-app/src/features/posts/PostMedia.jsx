@@ -1,23 +1,38 @@
 import { useState } from "react";
 
-function PostMedia({ media }) {
+function PostMedia({ media, onOpenPost }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!media || media.length === 0) return null;
 
   const currentFile = media[currentIndex];
 
-  const goPrevious = () => {
+  const goPrevious = (e) => {
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
   };
 
-  const goNext = () => {
+  const goNext = (e) => {
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
   };
 
+  const handleContainerClick = () => {
+    console.log("Media clicked");
+    console.log("onOpenPost prop:", onOpenPost);
+
+    if (onOpenPost) {
+      onOpenPost();
+    }
+  };
+
   return (
-    <div className="mb-4">
-      <div className="relative bg-slate-955 bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center">
+    <div
+      onClick={handleContainerClick}
+      className="relative cursor-pointer mb-4"
+    >
+      {/* Main Container Wrapper */}
+      <div className="relative bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center">
         {currentFile.file_type === "image" ? (
           <img
             src={currentFile.file_url}
@@ -35,6 +50,7 @@ function PostMedia({ media }) {
             href={currentFile.file_url}
             target="_blank"
             rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="block text-white underline text-xs font-bold p-8 text-center"
           >
             View attached file
@@ -76,11 +92,15 @@ function PostMedia({ media }) {
             <button
               key={file.id}
               type="button"
-              onClick={() => setCurrentIndex(index)}
-              className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${index === currentIndex
-                ? "w-4 bg-indigo-600"
-                : "w-1.5 bg-slate-200 hover:bg-slate-350"
-                }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(index);
+              }}
+              className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                index === currentIndex
+                  ? "w-4 bg-indigo-600"
+                  : "w-1.5 bg-slate-200 hover:bg-slate-350"
+              }`}
             />
           ))}
         </div>

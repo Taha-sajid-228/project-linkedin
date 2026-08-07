@@ -28,6 +28,8 @@ class UserResponse(BaseModel):
     provider: str
     profile_picture: Optional[str] = None
     bio: Optional[str] = None
+    followers_count: int = 0
+    following_count: int = 0
 
     class Config:
         from_attributes = True
@@ -48,6 +50,8 @@ class DiscoverUserResponse(PublicUserResponse):
     is_following: bool = False
     follows_you: bool = False
     followers_count: int = 0
+    friendship_status: Optional[str] = None
+    is_friend: bool = False
 
 
 class DiscoverUsersResponse(BaseModel):

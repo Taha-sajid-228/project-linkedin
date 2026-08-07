@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import API from "../api/axios";
 import PostCard from "../components/PostCard";
-import FollowListModal from "../components/FollowListModal";
 
 function Profile() {
   const navigate = useNavigate();
@@ -24,12 +23,12 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Follow system state
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [followListType, setFollowListType] = useState(null);
+  // Friendship system state
+  const [friendStatus, setFriendStatus] = useState("none");
+  // none | pending_sent | pending_received | accepted
+  const [friendshipId, setFriendshipId] = useState(null);
+  const [friendLoading, setFriendLoading] = useState(false);
+  const [friendsCount, setFriendsCount] = useState(0);
 
   // Bio state
   const [editingBio, setEditingBio] = useState(false);
@@ -67,18 +66,20 @@ function Profile() {
         ? await API.get("/posts/my-posts")
         : await API.get(`/posts/user/${userId}`);
 
-      const followStatusResponse = await API.get(
-        `/users/${profileUserId}/follow-status`
-      );
-
       setUser(userResponse.data);
       setBio(userResponse.data.bio || "");
       setOriginalBio(userResponse.data.bio || "");
+      setFriendsCount(userResponse.data.friends_count || 0);
       setMyPosts(postsResponse.data);
 
-      setIsFollowing(followStatusResponse.data.is_following);
-      setFollowersCount(followStatusResponse.data.followers_count);
-      setFollowingCount(followStatusResponse.data.following_count);
+      if (!isMyProfile) {
+        const friendshipResponse = await API.get(
+          `/friends/status/${profileUserId}`
+        );
+
+        setFriendStatus(friendshipResponse.data.status);
+        setFriendshipId(friendshipResponse.data.friendship_id ?? null);
+      }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
       toast.error(error.response?.data?.detail || "Failed to load profile");
@@ -91,59 +92,109 @@ function Profile() {
     fetchProfileData();
   }, [fetchProfileData]);
 
-  const handleFollow = async () => {
-    if (isMyProfile || followLoading) {
+  const handleSendFriendRequest = async () => {
+    if (isMyProfile || friendLoading) {
       return;
     }
 
     try {
-      setFollowLoading(true);
+      setFriendLoading(true);
 
-      const response = await API.post(
-        `/users/${userId}/follow`
-      );
+      const response = await API.post(`/friends/request/${userId}`);
 
-      setIsFollowing(response.data.is_following);
-      setFollowersCount(response.data.followers_count);
+      toast.success(response.data.message || "Friend request sent.");
 
-      toast.success(
-        response.data.message || "User followed successfully."
-      );
+      setFriendStatus("pending_sent");
+      setFriendshipId(response.data.friendship_id ?? null);
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail ||
-          "Failed to follow user."
-      );
+      toast.error(error.response?.data?.detail || "Failed to send friend request.");
     } finally {
-      setFollowLoading(false);
+      setFriendLoading(false);
     }
   };
 
-  const handleUnfollow = async () => {
-    if (isMyProfile || followLoading) {
+  const handleCancelRequest = async () => {
+    if (isMyProfile || friendLoading || !friendshipId) {
       return;
     }
 
     try {
-      setFollowLoading(true);
+      setFriendLoading(true);
 
-      const response = await API.delete(
-        `/users/${userId}/follow`
-      );
+      await API.delete(`/friends/requests/${friendshipId}/cancel`);
 
-      setIsFollowing(response.data.is_following);
-      setFollowersCount(response.data.followers_count);
+      toast.success("Friend request cancelled.");
 
-      toast.success(
-        response.data.message || "User unfollowed successfully."
-      );
+      setFriendStatus("none");
+      setFriendshipId(null);
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail ||
-          "Failed to unfollow user."
-      );
+      toast.error(error.response?.data?.detail || "Failed to cancel friend request.");
     } finally {
-      setFollowLoading(false);
+      setFriendLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    if (isMyProfile || friendLoading || !friendshipId) {
+      return;
+    }
+
+    try {
+      setFriendLoading(true);
+
+      await API.put(`/friends/requests/${friendshipId}/accept`);
+
+      toast.success("Friend request accepted.");
+
+      setFriendStatus("accepted");
+      await fetchProfileData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to accept friend request.");
+    } finally {
+      setFriendLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async () => {
+    if (isMyProfile || friendLoading || !friendshipId) {
+      return;
+    }
+
+    try {
+      setFriendLoading(true);
+
+      await API.put(`/friends/requests/${friendshipId}/reject`);
+
+      toast.success("Friend request rejected.");
+
+      setFriendStatus("none");
+      setFriendshipId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reject friend request.");
+    } finally {
+      setFriendLoading(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    if (isMyProfile || friendLoading) {
+      return;
+    }
+
+    try {
+      setFriendLoading(true);
+
+      await API.delete(`/friends/${userId}`);
+
+      toast.success("Friend removed.");
+
+      setFriendStatus("none");
+      setFriendshipId(null);
+      await fetchProfileData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to remove friend.");
+    } finally {
+      setFriendLoading(false);
     }
   };
 
@@ -462,29 +513,66 @@ function Profile() {
               )}
 
               {!isMyProfile && (
-                <button
-                  onClick={
-                    isFollowing
-                      ? handleUnfollow
-                      : handleFollow
-                  }
-                  disabled={followLoading}
-                  className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 ${
-                    isFollowing
-                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      : "bg-indigo-600 text-white hover:bg-indigo-700"
-                  } ${
-                    followLoading
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  {followLoading
-                    ? "Please wait..."
-                    : isFollowing
-                    ? "Unfollow"
-                    : "Follow"}
-                </button>
+                <div className="flex items-center gap-2">
+                  {friendStatus === "none" && (
+                    <button
+                      onClick={handleSendFriendRequest}
+                      disabled={friendLoading}
+                      className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 bg-indigo-600 text-white hover:bg-indigo-700 ${
+                        friendLoading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {friendLoading ? "Please wait..." : "Add Friend"}
+                    </button>
+                  )}
+
+                  {friendStatus === "pending_sent" && (
+                    <button
+                      onClick={handleCancelRequest}
+                      disabled={friendLoading}
+                      className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 bg-slate-100 text-slate-700 hover:bg-slate-200 ${
+                        friendLoading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {friendLoading ? "Please wait..." : "Cancel Request"}
+                    </button>
+                  )}
+
+                  {friendStatus === "pending_received" && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAcceptRequest}
+                        disabled={friendLoading}
+                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 bg-indigo-600 text-white hover:bg-indigo-700 ${
+                          friendLoading ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={handleRejectRequest}
+                        disabled={friendLoading}
+                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 bg-slate-100 text-slate-700 hover:bg-slate-200 ${
+                          friendLoading ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {friendStatus === "accepted" && (
+                    <button
+                      onClick={handleRemoveFriend}
+                      disabled={friendLoading}
+                      className={`px-5 py-2 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95 bg-slate-100 text-slate-700 hover:bg-slate-200 ${
+                        friendLoading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {friendLoading ? "Please wait..." : "Unfriend"}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -502,21 +590,9 @@ function Profile() {
             <p className="text-xs font-bold text-slate-400 mb-4">@{user?.username}</p>
 
             <div className="flex items-center gap-6 mb-5">
-              <button
-                type="button"
-                onClick={() => setFollowListType("followers")}
-                className="text-sm text-slate-700 hover:text-indigo-600 transition"
-              >
-                <span className="font-bold">{followersCount}</span> Followers
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFollowListType("following")}
-                className="text-sm text-slate-700 hover:text-indigo-600 transition"
-              >
-                <span className="font-bold">{followingCount}</span> Following
-              </button>
+              <span className="text-sm text-slate-700">
+                <span className="font-bold">{friendsCount}</span> Friends
+              </span>
             </div>
 
             {editingBio ? (
@@ -631,14 +707,6 @@ function Profile() {
           )}
         </div>
       </main>
-
-      {followListType && user?.id && (
-        <FollowListModal
-          userId={user.id}
-          type={followListType}
-          onClose={() => setFollowListType(null)}
-        />
-      )}
     </div>
   );
 }

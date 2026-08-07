@@ -257,7 +257,7 @@ function PostCard({
           onClick={handleOpenPostLikes}
           className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
         >
-          👍 {post.likes_count || 0} likes
+          ❤️ {post.likes_count || 0} likes
         </button>
 
         <button

@@ -14,28 +14,49 @@ function ResetPassword() {
 
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const isRedirecting = !isError && message.toLowerCase().includes("login");
+  const isFormDisabled = loading || isRedirecting;
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
-    try {
-      const data = new FormData();
+    if (isFormDisabled) return;
 
-      data.append("email", formData.email);
-      data.append("otp", formData.otp);
+    setMessage("");
+    setIsError(false);
+
+    if (!formData.email.trim()) {
+      setIsError(true);
+      setMessage("Email is required.");
+      return;
+    }
+
+    if (formData.otp.trim().length !== 6) {
+      setIsError(true);
+      setMessage("Please enter the 6-digit OTP.");
+      return;
+    }
+
+    if (formData.newPassword.length < 8) {
+      setIsError(true);
+      setMessage("Password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const data = new FormData();
+      data.append("email", formData.email.trim());
+      data.append("otp", formData.otp.trim());
       data.append("new_password", formData.newPassword);
 
       const response = await API.post("/reset-password", data);
 
       setIsError(false);
-      setMessage(response.data.message);
+      setMessage(response.data.message || "Password reset successful! Redirecting to login...");
 
       setTimeout(() => {
         navigate("/login");
@@ -45,6 +66,8 @@ function ResetPassword() {
       setMessage(
         error.response?.data?.detail || "Password reset failed."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,7 +75,14 @@ function ResetPassword() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
         {/* Custom Premium Logo */}
-        <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => navigate("/")}>
+        <div
+          className={`flex items-center gap-2 mb-6 ${
+            isFormDisabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          }`}
+          onClick={() => {
+            if (!isFormDisabled) navigate("/");
+          }}
+        >
           <svg className="w-9 h-9 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -80,9 +110,18 @@ function ResetPassword() {
                 type="email"
                 name="email"
                 placeholder="Email address"
+                autoComplete="email"
                 value={formData.email}
-                onChange={handleChange}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={isFormDisabled}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    email: e.target.value.trimStart(),
+                  });
+                  setMessage("");
+                  setIsError(false);
+                }}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -91,10 +130,21 @@ function ResetPassword() {
               <input
                 type="text"
                 name="otp"
-                placeholder="OTP Code"
+                placeholder="000000"
+                autoComplete="one-time-code"
                 value={formData.otp}
-                onChange={handleChange}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={isFormDisabled}
+                maxLength={6}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setFormData({
+                    ...formData,
+                    otp: value.slice(0, 6),
+                  });
+                  setMessage("");
+                  setIsError(false);
+                }}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-300 rounded-xl px-4 py-3.5 text-center text-2xl tracking-[16px] font-black text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -104,9 +154,19 @@ function ResetPassword() {
                 type="password"
                 name="newPassword"
                 placeholder="New Password"
+                autoComplete="new-password"
                 value={formData.newPassword}
-                onChange={handleChange}
-                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200"
+                disabled={isFormDisabled}
+                minLength={8}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    newPassword: e.target.value,
+                  });
+                  setMessage("");
+                  setIsError(false);
+                }}
+                className="w-full bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 placeholder-slate-400 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -114,9 +174,10 @@ function ResetPassword() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 cursor-pointer"
+                disabled={isFormDisabled}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
-                Reset Password
+                {loading ? "Resetting..." : "Reset Password"}
               </button>
             </div>
           </form>
@@ -132,9 +193,15 @@ function ResetPassword() {
           )}
 
           <div className="mt-8 text-center text-xs text-slate-500 font-semibold">
-            <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
-              Back to Login
-            </Link>
+            {isFormDisabled ? (
+              <span className="text-slate-400 cursor-not-allowed">
+                Back to Login
+              </span>
+            ) : (
+              <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
+                Back to Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

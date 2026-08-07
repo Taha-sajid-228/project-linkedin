@@ -58,50 +58,45 @@ function ProfileSidebar({ user }) {
             </span>
           )}
 
-          <div className="mt-3.5 flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-bold bg-slate-50 border border-slate-100 text-slate-600">
-            <span>METHOD:</span>
+<div className="mt-5 w-full rounded-2xl border border-slate-200 bg-slate-50 divide-y divide-slate-200 overflow-hidden">
 
-            {user?.provider === "google" && (
-              <span className="text-red-500">
-                Google
-              </span>
-            )}
+  <div className="flex items-center justify-between px-4 py-3">
+    <span className="text-sm font-semibold text-slate-700">
+      Followers
+    </span>
 
-            {user?.provider === "github" && (
-              <span className="text-slate-800">
-                GitHub
-              </span>
-            )}
+    <span className="min-w-[48px] rounded-lg border border-slate-200 bg-white px-3 py-1 text-center text-sm font-bold text-slate-900 shadow-sm">
+      {user?.followers_count ?? 0}
+    </span>
+  </div>
 
-            {user?.provider === "email" && (
-              <span className="text-indigo-600">
-                Email OTP
-              </span>
-            )}
-          </div>
+  <div className="flex items-center justify-between px-4 py-3">
+    <span className="text-sm font-semibold text-slate-700">
+      Following
+    </span>
+
+    <span className="min-w-[48px] rounded-lg border border-slate-200 bg-white px-3 py-1 text-center text-sm font-bold text-slate-900 shadow-sm">
+      {user?.following_count ?? 0}
+    </span>
+  </div>
+
+  <button
+    type="button"
+    onClick={() => navigate("/friends")}
+    className="flex w-full items-center justify-between px-4 py-3 transition hover:bg-indigo-50"
+  >
+    <span className="text-sm font-semibold text-slate-700">
+      Friends
+    </span>
+
+    <span className="min-w-[48px] rounded-lg border border-slate-200 bg-white px-3 py-1 text-center text-sm font-bold text-slate-900 shadow-sm">
+      {user?.friends_count ?? 0}
+    </span>
+  </button>
+
+</div>
         </div>
 
-        <div className="border-t border-slate-100/80 p-4 space-y-3 bg-slate-50/50">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-bold text-slate-500">
-              Profile views
-            </span>
-
-            <span className="text-slate-900 font-extrabold bg-white border border-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
-              142
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-bold text-slate-500">
-              Post impressions
-            </span>
-
-            <span className="text-slate-900 font-extrabold bg-white border border-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
-              1,824
-            </span>
-          </div>
-        </div>
       </div>
 
       {user?.role === "admin" && (

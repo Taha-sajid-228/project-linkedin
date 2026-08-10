@@ -57,8 +57,10 @@ function Messages() {
   const [messagesError, setMessagesError] =
     useState("");
 
+  const messageContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
-
+  const shouldScrollToBottomRef = useRef(false);
+  const isNearBottomRef = useRef(true);
 
   const addOrUpdateMessage = useCallback(
     (incomingMessage) => {
@@ -188,11 +190,36 @@ function Messages() {
   });
 
 
-  const scrollToLatestMessage = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+  const scrollMessageHistoryToBottom = useCallback(() => {
+    const container = messageContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    container.scrollTop =
+      container.scrollHeight - container.clientHeight;
   }, []);
+
+
+  const isMessageHistoryNearBottom = useCallback(() => {
+    const container = messageContainerRef.current;
+
+    if (!container) {
+      return true;
+    }
+
+    return (
+      container.scrollHeight -
+        container.scrollTop -
+        container.clientHeight <= 80
+    );
+  }, []);
+
+
+  const handleMessageHistoryScroll = useCallback(() => {
+    isNearBottomRef.current = isMessageHistoryNearBottom();
+  }, [isMessageHistoryNearBottom]);
 
 
   const loadConversations = useCallback(async () => {
@@ -374,8 +401,41 @@ function Messages() {
 
 
   useEffect(() => {
-    scrollToLatestMessage();
-  }, [messages, scrollToLatestMessage]);
+    if (!selectedConversation) {
+      return;
+    }
+
+    shouldScrollToBottomRef.current = true;
+    isNearBottomRef.current = true;
+  }, [selectedConversation?.id]);
+
+
+  useEffect(() => {
+    if (messagesLoading) {
+      return;
+    }
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    if (!messageContainerRef.current) {
+      return;
+    }
+
+    if (
+      shouldScrollToBottomRef.current ||
+      isNearBottomRef.current
+    ) {
+      scrollMessageHistoryToBottom();
+      shouldScrollToBottomRef.current = false;
+    }
+  }, [
+    messages,
+    messagesLoading,
+    selectedConversation?.id,
+    scrollMessageHistoryToBottom,
+  ]);
 
 
   const handleSelectConversation = (conversation) => {
@@ -460,7 +520,7 @@ function Messages() {
         onLogout={handleLogout}
         onGoProfile={handleGoProfile}
       />
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto h-[calc(100vh-4rem-3rem)] max-h-[calc(100vh-4rem-3rem)] flex flex-col overflow-hidden py-6 px-4">
         <div className="mb-6">
           <h1 className="text-3xl font-black text-slate-900">
             Messages
@@ -484,9 +544,9 @@ function Messages() {
         )}
 
         {!loading && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex h-[720px] overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex-1 min-h-0 flex overflow-hidden">
             {/* Conversation List */}
-            <aside className="w-80 border-r border-slate-200 flex flex-col">
+            <aside className="w-80 border-r border-slate-200 flex flex-col h-full">
               <div className="px-5 py-4 border-b border-slate-200">
                 <h2 className="font-bold text-slate-900">
                   Conversations
@@ -583,7 +643,7 @@ function Messages() {
             </aside>
 
             {/* Chat Window */}
-            <section className="flex-1 min-w-0 flex flex-col">
+            <section className="flex-1 min-w-0 flex flex-col overflow-hidden h-full">
               {!selectedConversation ? (
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div>
@@ -658,7 +718,11 @@ function Messages() {
                   </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto bg-slate-50 px-5 py-5">
+                  <div
+                    ref={messageContainerRef}
+                    onScroll={handleMessageHistoryScroll}
+                    className="flex-1 min-h-0 max-h-full overflow-y-auto bg-slate-50 px-5 py-5"
+                  >
                     {messagesLoading ? (
                       <div className="text-center text-sm text-slate-500 py-8">
                         Loading messages...

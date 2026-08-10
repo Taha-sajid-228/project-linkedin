@@ -383,17 +383,23 @@ function useDashboard() {
         formData.append("removed_media_ids", id);
       });
 
-      await API.put(`/posts/${postId}`, formData, {
+      const response = await API.put(`/posts/${postId}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
+      const updatedPost = response.data;
+
+      setPosts((previousPosts) =>
+        previousPosts.map((post) =>
+          post.id === postId ? updatedPost : post
+        )
+      );
+
       toast.success("Post updated successfully.");
 
       cancelEditing();
-
-      await refreshFeed();
     } catch (err) {
       console.error(err);
       toast.error(getErrorMessage(err, "Failed to update post"));

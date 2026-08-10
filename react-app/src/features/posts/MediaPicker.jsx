@@ -101,15 +101,15 @@ function MediaPicker({
               key={`existing-${media.id}`}
               className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group transition-all duration-200 hover:scale-105"
             >
-              {media.media_type?.startsWith("video") ? (
+              {media.file_type?.startsWith("video") ? (
                 <video
-                  src={media.url}
+                  src={media.file_url}
                   className="w-full h-full object-cover"
                   muted
                 />
               ) : (
                 <img
-                  src={media.url}
+                  src={media.file_url}
                   alt="Post media"
                   className="w-full h-full object-cover"
                 />

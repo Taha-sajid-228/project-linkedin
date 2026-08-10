@@ -5,6 +5,10 @@ import toast from "react-hot-toast";
 
 import API from "../api/axios";
 import AdminLayout from "../layouts/AdminLayout";
+import ActionButton from "../components/ActionButton";
+import { PostStatusBadge } from "../components/StatusBadges";
+import SearchInput from "../components/SearchInput";
+import InlineErrorPanel from "../components/InlineErrorPanel";
 
 
 const PAGE_LIMIT = 10;
@@ -320,14 +324,12 @@ function AdminPosts() {
             onSubmit={handleSearchSubmit}
             className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_auto_auto]"
           >
-            <input
-              type="text"
+            <SearchInput
               value={searchInput}
               onChange={(event) =>
                 setSearchInput(event.target.value)
               }
               placeholder="Search content, username, email or name..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
             />
 
             <select
@@ -394,10 +396,7 @@ function AdminPosts() {
           {loading ? (
             <LoadingState />
           ) : error ? (
-            <ErrorState
-              message={error}
-              onRetry={fetchPosts}
-            />
+            <InlineErrorPanel message={error} onRetry={fetchPosts} />
           ) : posts.length === 0 ? (
             <EmptyState />
           ) : (
@@ -664,59 +663,9 @@ function TableHeading({
 }
 
 
-function PostStatusBadge({
-  post,
-}) {
-  if (post.is_deleted) {
-    return (
-      <span className="inline-flex rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-600">
-        Deleted
-      </span>
-    );
-  }
-
-  if (post.is_archived) {
-    return (
-      <span className="inline-flex rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-        Archived
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-      Active
-    </span>
-  );
-}
 
 
-function ActionButton({
-  label,
-  onClick,
-  disabled,
-  variant = "default",
-}) {
-  const styles = {
-    default:
-      "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
-    warning:
-      "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
-    danger:
-      "border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
-  };
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]}`}
-    >
-      {disabled ? "Please wait..." : label}
-    </button>
-  );
-}
 
 
 function LoadingState() {
@@ -727,32 +676,6 @@ function LoadingState() {
       <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
         Loading posts...
       </p>
-    </div>
-  );
-}
-
-
-function ErrorState({
-  message,
-  onRetry,
-}) {
-  return (
-    <div className="flex min-h-72 flex-col items-center justify-center px-4 text-center">
-      <h3 className="text-sm font-black text-slate-900">
-        Unable to load posts
-      </h3>
-
-      <p className="mt-2 text-sm text-red-600">
-        {message}
-      </p>
-
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-700"
-      >
-        Try Again
-      </button>
     </div>
   );
 }

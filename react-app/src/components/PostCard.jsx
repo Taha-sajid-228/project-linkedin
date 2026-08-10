@@ -9,6 +9,10 @@ function PostCard({
   editingPostId,
   editContent,
   setEditContent,
+  removedMediaIds = [],
+  setRemovedMediaIds = () => {},
+  selectedFiles = [],
+  setSelectedFiles = () => {},
   onStartEditing,
   onCancelEditing,
   onUpdatePost,
@@ -19,8 +23,11 @@ function PostCard({
   onSharePost,
   onOpenComments,
   onOpenLikes,
+  onOpenPost,
   hasChanges,
   isSaving,
+  isModal = false,
+  onClose,
 }) {
   const navigate = useNavigate();
 
@@ -67,8 +74,27 @@ function PostCard({
     navigate(`/posts/${post.id}/likes`);
   };
 
+  const handleCardClick = (e) => {
+    if (!onOpenPost || editingPostId === post.id) {
+      return;
+    }
+
+    const interactiveElement = e.target.closest(
+      "button, a, input, textarea, select, label, svg"
+    );
+
+    if (interactiveElement) {
+      return;
+    }
+
+    onOpenPost(post);
+  };
+
   return (
-    <article className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm">
+    <article
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm cursor-pointer"
+    >
       {isSharedPost && (
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 w-fit">
           <svg
@@ -183,6 +209,11 @@ function PostCard({
         <EditPost
           editContent={editContent}
           setEditContent={setEditContent}
+          existingMedia={post.media || []}
+          removedMediaIds={removedMediaIds}
+          setRemovedMediaIds={setRemovedMediaIds}
+          newFiles={selectedFiles}
+          setNewFiles={setSelectedFiles}
           onSave={() => onUpdatePost(post.id)}
           onCancel={onCancelEditing}
           hasChanges={hasChanges}

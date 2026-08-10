@@ -13,6 +13,8 @@ import {
 } from "../api/friends";
 import { createConversation } from "../api/chat";
 import { showConfirmation } from "../utils/confirmDialog";
+import UserCard from "../components/UserCard";
+import EmptyState from "../components/EmptyState";
 
 
 function Friends() {
@@ -693,90 +695,10 @@ function UserRow({
   user,
   children,
 }) {
-  const firstLetter =
-    user?.name?.charAt(0) ||
-    user?.username?.charAt(0) ||
-    "U";
-
   return (
-    <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-center gap-3">
-        {user?.profile_picture ? (
-          <img
-            src={user.profile_picture}
-            alt={
-              user.username ||
-              "User profile"
-            }
-            className="h-14 w-14 shrink-0 rounded-xl border border-slate-200 object-cover"
-          />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-sm font-black text-indigo-700">
-            {firstLetter.toUpperCase()}
-          </div>
-        )}
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-black text-slate-900">
-            {user?.name ||
-              user?.username ||
-              "Unknown User"}
-          </p>
-
-          <p className="truncate text-xs font-semibold text-slate-400">
-            @{user?.username || "unknown"}
-          </p>
-
-          {user?.bio && (
-            <p className="mt-1 line-clamp-1 text-xs font-medium text-slate-500">
-              {user.bio}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-
-// ==========================
-// Empty State
-// ==========================
-
-function EmptyState({
-  title,
-  message,
-}) {
-  return (
-    <div className="px-5 py-10 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-        <svg
-          className="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 11h-6" />
-        </svg>
-      </div>
-
-      <h3 className="mt-3 text-sm font-black text-slate-700">
-        {title}
-      </h3>
-
-      <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-5 text-slate-400">
-        {message}
-      </p>
-    </div>
+    <UserCard user={user} onProfileOpen={() => navigate(`/profile/${user.id}`)}>
+      {children}
+    </UserCard>
   );
 }
 

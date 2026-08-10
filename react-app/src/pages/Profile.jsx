@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import API from "../api/axios";
 import PostCard from "../components/PostCard";
+import ProfileHeader from "../features/profile/ProfileHeader";
 
 function Profile() {
   const navigate = useNavigate();

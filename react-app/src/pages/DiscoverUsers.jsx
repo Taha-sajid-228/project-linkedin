@@ -4,6 +4,9 @@ import toast from "react-hot-toast";
 
 import API from "../api/axios";
 import { showConfirmation } from "../utils/confirmDialog";
+import UserCard from "../components/UserCard";
+import EmptyState from "../components/EmptyState";
+import SearchInput from "../components/SearchInput";
 
 import {
   acceptFriendRequest,
@@ -97,25 +100,15 @@ function DiscoverUsers() {
           },
         });
 
-        const receivedUsers =
-          response.data?.users || [];
+        const receivedUsers = response.data?.users || [];
 
         setUsers((previousUsers) =>
-          append
-            ? [
-                ...previousUsers,
-                ...receivedUsers,
-              ]
-            : receivedUsers
+          append ? [...previousUsers, ...receivedUsers] : receivedUsers
         );
 
-        setOffset(
-          currentOffset + receivedUsers.length
-        );
+        setOffset(currentOffset + receivedUsers.length);
 
-        setHasMore(
-          Boolean(response.data?.has_more)
-        );
+        setHasMore(Boolean(response.data?.has_more));
       } catch (error) {
         console.error(
           "Failed to load users:",
@@ -588,14 +581,13 @@ function DiscoverUsers() {
             }}
             className="mt-4 flex flex-col gap-3 sm:flex-row"
           >
-            <input
-              type="text"
+            <SearchInput
               value={searchText}
               onChange={(event) =>
                 setSearchText(event.target.value)
               }
               placeholder="Search people by name or username"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+              className="rounded-2xl border bg-white text-slate-900"
             />
 
             <button
@@ -609,11 +601,7 @@ function DiscoverUsers() {
 
 
         {users.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-            <p className="text-sm font-semibold text-slate-400">
-              No users found.
-            </p>
-          </div>
+          <EmptyState title="No users found" message="Try a different search." />
         ) : (
           <div className="space-y-3">
             {users.map((user) => {
@@ -635,230 +623,145 @@ function DiscoverUsers() {
                 isFriendWithUser(user.id);
 
               return (
-                <div
+                <UserCard
                   key={user.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center"
+                  user={user}
+                  onProfileOpen={() =>
+                    handleProfileOpen(user.id)
+                  }
                 >
-                  {/* Profile Picture */}
                   <button
                     type="button"
+                    disabled={isFollowLoading}
                     onClick={() =>
-                      handleProfileOpen(user.id)
+                      user.is_following
+                        ? handleUnfollow(user.id)
+                        : handleFollow(user.id)
                     }
-                    className="shrink-0 cursor-pointer"
+                    onMouseEnter={() =>
+                      setHoveredFollowUserId(user.id)
+                    }
+                    onMouseLeave={() =>
+                      setHoveredFollowUserId(null)
+                    }
+                    className={`min-w-24 rounded-xl px-4 py-2 text-xs font-black transition-all duration-200 ${
+                      user.is_following
+                        ? hoveredFollowUserId === user.id
+                          ? "border border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
+                          : "border border-slate-200 bg-slate-100 text-slate-700"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700"
+                    } ${
+                      isFollowLoading
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }`}
                   >
-                    {user.profile_picture ? (
-                      <img
-                        src={
-                          user.profile_picture
-                        }
-                        alt={
-                          user.username ||
-                          "User profile"
-                        }
-                        className="h-14 w-14 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-100 text-sm font-black text-indigo-700">
-                        {user.username
-                          ?.substring(0, 2)
-                          .toUpperCase() || "U"}
-                      </div>
-                    )}
+                    {isFollowLoading
+                      ? "Please wait..."
+                      : user.is_following
+                      ? hoveredFollowUserId === user.id
+                        ? "Unfollow"
+                        : "Following"
+                      : getFollowButtonText(user)}
                   </button>
 
-
-                  {/* User Information */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleProfileOpen(user.id)
-                    }
-                    className="min-w-0 flex-1 cursor-pointer text-left"
-                  >
-                    <p className="truncate text-sm font-black text-slate-900">
-                      {user.name ||
-                        user.username ||
-                        "Anonymous User"}
-                    </p>
-
-                    <p className="truncate text-xs font-semibold text-slate-400">
-                      @{user.username || "unknown"}
-                    </p>
-
-                    {user.bio && (
-                      <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                        {user.bio}
-                      </p>
-                    )}
-
-                    <p className="mt-2 text-xs font-bold text-slate-500">
-                      {user.followers_count ?? 0}{" "}
-                      Followers
-                    </p>
-                  </button>
-
-
-                  {/* Action Buttons */}
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    {/* Follow / Unfollow / Follow Back */}
+                  {isFriend && (
                     <button
                       type="button"
-                      disabled={isFollowLoading}
-                      onClick={() =>
-                        user.is_following
-                          ? handleUnfollow(user.id)
-                          : handleFollow(user.id)
-                      }
-                      onMouseEnter={() =>
-                        setHoveredFollowUserId(user.id)
-                      }
-                      onMouseLeave={() =>
-                        setHoveredFollowUserId(null)
-                      }
-                      className={`min-w-24 rounded-xl px-4 py-2 text-xs font-black transition-all duration-200 ${
-                        user.is_following
-                          ? hoveredFollowUserId === user.id
-                            ? "border border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
-                            : "border border-slate-200 bg-slate-100 text-slate-700"
-                          : "bg-indigo-600 text-white hover:bg-indigo-700"
-                      } ${
-                        isFollowLoading
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
-                      }`}
+                      onClick={() => navigate("/friends")}
+                      className="min-w-28 cursor-pointer rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
                     >
-                      {isFollowLoading ? (
-                        "Please wait..."
-                      ) : user.is_following ? (
-                        hoveredFollowUserId === user.id ? (
-                          "Unfollow"
-                        ) : (
-                          "Following"
-                        )
-                      ) : (
-                        getFollowButtonText(user)
-                      )}
+                      Friends
                     </button>
+                  )}
 
-
-                    {/* Already Friends */}
-                    {isFriend && (
+                  {!isFriend &&
+                    sentRequest && (
                       <button
                         type="button"
+                        disabled={isFriendLoading}
                         onClick={() =>
-                          navigate("/friends")
+                          handleCancelFriendRequest(
+                            sentRequest.id,
+                            user.id
+                          )
                         }
-                        className="min-w-28 cursor-pointer rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100"
+                        className={`min-w-28 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100 ${
+                          isFriendLoading
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
+                        }`}
                       >
-                        Friends
+                        {isFriendLoading
+                          ? "Cancelling..."
+                          : "Request Sent"}
                       </button>
                     )}
 
-
-                    {/* Sent Request */}
-                    {!isFriend &&
-                      sentRequest && (
+                  {!isFriend &&
+                    receivedRequest && (
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          disabled={
-                            isFriendLoading
-                          }
+                          disabled={isFriendLoading}
                           onClick={() =>
-                            handleCancelFriendRequest(
-                              sentRequest.id,
+                            handleAcceptFriendRequest(
+                              receivedRequest.id,
                               user.id
                             )
                           }
-                          className={`min-w-28 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100 ${
+                          className={`rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-700 ${
                             isFriendLoading
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer"
                           }`}
                         >
                           {isFriendLoading
-                            ? "Cancelling..."
-                            : "Request Sent"}
+                            ? "Please wait..."
+                            : "Accept"}
                         </button>
-                      )}
 
-
-                    {/* Received Request */}
-                    {!isFriend &&
-                      receivedRequest && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={
-                              isFriendLoading
-                            }
-                            onClick={() =>
-                              handleAcceptFriendRequest(
-                                receivedRequest.id,
-                                user.id
-                              )
-                            }
-                            className={`rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white transition hover:bg-emerald-700 ${
-                              isFriendLoading
-                                ? "cursor-not-allowed opacity-50"
-                                : "cursor-pointer"
-                            }`}
-                          >
-                            {isFriendLoading
-                              ? "Please wait..."
-                              : "Accept"}
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={
-                              isFriendLoading
-                            }
-                            onClick={() =>
-                              handleRejectFriendRequest(
-                                receivedRequest.id,
-                                user.id
-                              )
-                            }
-                            className={`rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100 ${
-                              isFriendLoading
-                                ? "cursor-not-allowed opacity-50"
-                                : "cursor-pointer"
-                            }`}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-
-                    {/* Add Friend */}
-                    {!isFriend &&
-                      !sentRequest &&
-                      !receivedRequest && (
                         <button
                           type="button"
-                          disabled={
-                            isFriendLoading
-                          }
+                          disabled={isFriendLoading}
                           onClick={() =>
-                            handleSendFriendRequest(
+                            handleRejectFriendRequest(
+                              receivedRequest.id,
                               user.id
                             )
                           }
-                          className={`min-w-28 rounded-xl border border-indigo-600 bg-white px-4 py-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 ${
+                          className={`rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100 ${
                             isFriendLoading
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer"
                           }`}
                         >
-                          {isFriendLoading
-                            ? "Sending..."
-                            : "Add Friend"}
+                          Reject
                         </button>
-                      )}
-                  </div>
-                </div>
+                      </div>
+                    )}
+
+                  {!isFriend &&
+                    !sentRequest &&
+                    !receivedRequest && (
+                      <button
+                        type="button"
+                        disabled={isFriendLoading}
+                        onClick={() =>
+                          handleSendFriendRequest(user.id)
+                        }
+                        className={`min-w-28 rounded-xl border border-indigo-600 bg-white px-4 py-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 ${
+                          isFriendLoading
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
+                        }`}
+                      >
+                        {isFriendLoading
+                          ? "Sending..."
+                          : "Add Friend"}
+                      </button>
+                    )}
+                </UserCard>
               );
             })}
           </div>
@@ -883,6 +786,5 @@ function DiscoverUsers() {
     </div>
   );
 }
-
 
 export default DiscoverUsers;

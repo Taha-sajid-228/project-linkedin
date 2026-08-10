@@ -20,6 +20,7 @@ function DashboardNavbar({
 }) {
   const navigate = useNavigate();
 
+  const [searchText, setSearchText] = useState("");
   const [hasFriendNotifications, setHasFriendNotifications] =
     useState(false);
 
@@ -159,7 +160,22 @@ function DashboardNavbar({
           </div>
 
           {/* Search bar */}
-          <div className="hidden w-72 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all duration-200 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-600/10 md:flex">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const trimmedSearch = searchText.trim();
+              if (trimmedSearch) {
+                navigate(
+                  `/discover?search=${encodeURIComponent(
+                    trimmedSearch
+                  )}`
+                );
+              } else {
+                navigate("/discover");
+              }
+            }}
+            className="hidden w-72 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all duration-200 focus-within:border-indigo-600 focus-within:ring-4 focus-within:ring-indigo-600/10 md:flex"
+          >
             <svg
               className="mr-2 h-4.5 w-4.5 text-slate-400"
               fill="none"
@@ -176,10 +192,14 @@ function DashboardNavbar({
 
             <input
               type="text"
+              value={searchText}
+              onChange={(event) =>
+                setSearchText(event.target.value)
+              }
               placeholder="Search developers, discussions..."
               className="w-full border-none bg-transparent text-xs font-medium text-slate-900 outline-none placeholder-slate-400"
             />
-          </div>
+          </form>
         </div>
 
         <nav className="flex items-center gap-6">

@@ -97,6 +97,7 @@ def get_all_users(
         default=0,
         ge=0,
     ),
+    search: str = Query(default="", min_length=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -113,9 +114,25 @@ def get_all_users(
     - Pagination information
     """
 
+    query_filters = [
+        User.id != current_user.id,
+        User.is_deleted == False,
+    ]
+
+    search_term = search.strip()
+
+    if search_term:
+        search_filter = f"%{search_term}%"
+        query_filters.append(
+            or_(
+                User.username.ilike(search_filter),
+                User.name.ilike(search_filter),
+            )
+        )
+
     total = (
         db.query(User)
-        .filter(User.id != current_user.id)
+        .filter(*query_filters)
         .count()
     )
 
@@ -176,7 +193,7 @@ def get_all_users(
                 == current_user.id,
             ),
         )
-        .filter(User.id != current_user.id)
+        .filter(*query_filters)
         .order_by(User.id.desc())
         .offset(offset)
         .limit(limit)

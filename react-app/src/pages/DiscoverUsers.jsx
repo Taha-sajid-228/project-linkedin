@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import API from "../api/axios";
@@ -18,6 +18,7 @@ import {
 
 function DiscoverUsers() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [users, setUsers] = useState([]);
 
@@ -34,6 +35,9 @@ function DiscoverUsers() {
 
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+
+  const [searchText, setSearchText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const limit = 20;
 
@@ -75,7 +79,8 @@ function DiscoverUsers() {
   const fetchUsers = useCallback(
     async (
       currentOffset = 0,
-      append = false
+      append = false,
+      search = ""
     ) => {
       try {
         if (append) {
@@ -88,6 +93,7 @@ function DiscoverUsers() {
           params: {
             limit,
             offset: currentOffset,
+            search: search || undefined,
           },
         });
 
@@ -138,8 +144,16 @@ function DiscoverUsers() {
       try {
         setLoading(true);
 
+        const searchQueryParam =
+          searchParams.get("search")?.trim() || "";
+
+        if (searchQueryParam) {
+          setSearchText(searchQueryParam);
+          setSearchQuery(searchQueryParam);
+        }
+
         await Promise.all([
-          fetchUsers(0, false),
+          fetchUsers(0, false, searchQueryParam),
           fetchFriendshipData(),
         ]);
       } catch (error) {
@@ -156,6 +170,7 @@ function DiscoverUsers() {
   }, [
     fetchUsers,
     fetchFriendshipData,
+    searchParams,
   ]);
 
 
@@ -563,6 +578,33 @@ function DiscoverUsers() {
             Follow people and send friend
             requests to build your network.
           </p>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const trimmedSearch = searchText.trim();
+              setSearchQuery(trimmedSearch);
+              fetchUsers(0, false, trimmedSearch);
+            }}
+            className="mt-4 flex flex-col gap-3 sm:flex-row"
+          >
+            <input
+              type="text"
+              value={searchText}
+              onChange={(event) =>
+                setSearchText(event.target.value)
+              }
+              placeholder="Search people by name or username"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+            />
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition hover:bg-indigo-700"
+            >
+              Search
+            </button>
+          </form>
         </div>
 
 
@@ -827,7 +869,7 @@ function DiscoverUsers() {
           <button
             type="button"
             onClick={() =>
-              fetchUsers(offset, true)
+              fetchUsers(offset, true, searchQuery)
             }
             disabled={loadingMore}
             className="mt-6 w-full rounded-xl bg-slate-200 px-4 py-3 text-xs font-black text-slate-700 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-50"

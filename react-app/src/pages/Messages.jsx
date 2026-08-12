@@ -17,7 +17,7 @@ import {
 } from "../api/chat";
 
 import useChatSocket from "../hooks/useChatSocket";
-import DashboardNavbar from "../components/DashboardNavbar";
+// Navbar is provided by AuthenticatedLayout for authenticated pages
 import API from "../api/axios";
 
 
@@ -483,16 +483,7 @@ function Messages() {
   };
 
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-
-  const handleGoProfile = () => {
-    navigate("/profile");
-  };
+  // logout and profile navigation handled by AuthenticatedLayout
 
 
   if (userLoading) {
@@ -519,11 +510,7 @@ function Messages() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <DashboardNavbar
-        user={user}
-        onLogout={handleLogout}
-        onGoProfile={handleGoProfile}
-      />
+      {/* Navbar is rendered by AuthenticatedLayout */}
       <div className="max-w-7xl mx-auto h-[calc(100vh-4rem-3rem)] max-h-[calc(100vh-4rem-3rem)] flex flex-col overflow-hidden py-6 px-4">
         <div className="mb-6">
           <h1 className="text-3xl font-black text-slate-900">

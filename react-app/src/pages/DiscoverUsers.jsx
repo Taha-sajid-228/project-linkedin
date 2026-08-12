@@ -521,46 +521,6 @@ function DiscoverUsers() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
-          <div
-            onClick={() =>
-              navigate("/dashboard")
-            }
-            className="cursor-pointer text-xl font-black"
-          >
-            Link{" "}
-            <span className="text-indigo-600">
-              Loop
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/friends")
-              }
-              className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100"
-            >
-              Friends
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/dashboard")
-              }
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
-            >
-              Back to Feed
-            </button>
-          </div>
-        </div>
-      </nav>
-
-
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-black tracking-tight text-slate-900">

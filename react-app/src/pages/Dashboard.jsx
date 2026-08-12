@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import DashboardNavbar from "../components/DashboardNavbar";
 import Loader from "../components/Loader";
 import ErrorMessage from "../components/ErrorMessage";
 
@@ -83,12 +82,6 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
-      <DashboardNavbar
-        user={user}
-        onLogout={handleLogout}
-        onGoProfile={goToProfile}
-      />
-
       <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <ProfileSidebar user={user} />
 

@@ -28,6 +28,7 @@ import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminProtectedRoute from "./routes/AdminProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
+import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 
 
 function App() {
@@ -53,7 +54,9 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <AuthenticatedLayout>
+                  <Profile />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -63,7 +66,9 @@ function App() {
             path="/profile/:userId"
             element={
               <ProtectedRoute>
-                <Profile />
+                <AuthenticatedLayout>
+                  <Profile />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -131,7 +136,9 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <AuthenticatedLayout>
+                  <Dashboard />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -141,7 +148,9 @@ function App() {
             path="/discover"
             element={
               <ProtectedRoute>
-                <DiscoverUsers />
+                <AuthenticatedLayout>
+                  <DiscoverUsers />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -151,7 +160,9 @@ function App() {
             path="/friends"
             element={
               <ProtectedRoute>
-                <Friends />
+                <AuthenticatedLayout>
+                  <Friends />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -161,7 +172,9 @@ function App() {
             path="/messages"
             element={
               <ProtectedRoute>
-                <Messages />
+                <AuthenticatedLayout>
+                  <Messages />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -171,7 +184,9 @@ function App() {
             path="/posts/:postId"
             element={
               <ProtectedRoute>
-                <PostDetails />
+                <AuthenticatedLayout>
+                  <PostDetails />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />
@@ -181,7 +196,9 @@ function App() {
             path="/posts/:postId/likes"
             element={
               <ProtectedRoute>
-                <LikesList />
+                <AuthenticatedLayout>
+                  <LikesList />
+                </AuthenticatedLayout>
               </ProtectedRoute>
             }
           />

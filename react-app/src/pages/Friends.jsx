@@ -282,47 +282,6 @@ function Friends() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/dashboard")
-            }
-            className="cursor-pointer text-xl font-black tracking-tight text-slate-900"
-          >
-            Link
-            <span className="text-indigo-600">
-              Loop
-            </span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/discover")
-              }
-              className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100"
-            >
-              Discover People
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/dashboard")
-              }
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
-            >
-              Back to Feed
-            </button>
-          </div>
-        </div>
-      </nav>
-
-
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Page Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

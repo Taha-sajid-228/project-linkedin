@@ -439,6 +439,10 @@ function Messages() {
 
 
   const handleSelectConversation = (conversation) => {
+    if (selectedConversation?.id === conversation.id) {
+      return;
+    }
+
     setSelectedConversation(conversation);
     setMessages([]);
     setMessagesError("");

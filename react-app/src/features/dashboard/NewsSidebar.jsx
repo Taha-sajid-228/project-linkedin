@@ -22,11 +22,10 @@ function NewsSidebar({ suggestedUsers = [], onAddFriend }) {
         <h3 className="text-xs font-bold text-slate-800 mb-4 flex items-center justify-between uppercase tracking-wider">
           <span>Suggested Users</span>
           <span className="text-slate-400 cursor-help" title="Suggested users">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9a3 3 0 11-6 0 3 3 0 016 0zM9 21v-1a4 4 0 014-4h1m5-9a2.5 2.5 0 010 5" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-1a4 4 0 014-4 4 4 0 014 4v1" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 9a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+</svg>
+
           </span>
         </h3>
 

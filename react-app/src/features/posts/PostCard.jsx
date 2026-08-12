@@ -106,20 +106,14 @@ function PostCard({
 
       {isSharedPost && (
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 w-fit">
-          <svg
-            className="w-4 h-4 text-indigo-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M7 7h10l-2.5-2.5" />
-            <path d="M17 7l-2.5-2.5" />
-            <path d="M17 17H7l2.5 2.5" />
-            <path d="M7 17l2.5 2.5" />
-          </svg>
+       <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M17 2.1l4 4-4 4" />
+  <path d="M3 12.2v-2a4 4 0 0 1 4-4h14" />
+  <path d="M7 21.9l-4-4 4-4" />
+  <path d="M21 11.8v2a4 4 0 0 1-4 4H3" />
+</svg>
+
+
 
           <span>
             <button

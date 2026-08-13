@@ -2,7 +2,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import API from "../api/axios";
+import { getMe } from "../api/auth";
+import {
+  getFeedPosts,
+  createPost,
+  updatePost,
+  deletePost,
+  archivePost,
+  unarchivePost,
+  likePost,
+} from "../api/posts";
+import { getUserSuggestions } from "../api/users";
+import { sendFriendRequest } from "../api/friends";
 import { showConfirmation } from "../utils/confirmDialog";
 
 // Helper function to safely parse API error details as strings
@@ -71,11 +82,9 @@ function useDashboard() {
       feedRequestRunning.current = true;
       setFeedLoading(true);
 
-      const response = await API.get("/posts/feed", {
-        params: { page: pageNumber, limit: 10 },
-      });
+      const data = await getFeedPosts({ page: pageNumber, limit: 10 });
 
-      const receivedPosts = response.data?.posts || [];
+      const receivedPosts = data?.posts || [];
 
       setPosts((previousPosts) => {
         if (replace) return receivedPosts;
@@ -89,7 +98,7 @@ function useDashboard() {
       });
 
       setPage(pageNumber);
-      setHasMore(Boolean(response.data?.has_more));
+      setHasMore(Boolean(data?.has_more));
     } catch (err) {
       console.error("Failed to fetch personalized feed:", err);
       toast.error(getErrorMessage(err, "Failed to load feed."));
@@ -103,8 +112,8 @@ function useDashboard() {
   const fetchSuggestedUsers = useCallback(async () => {
     try {
       setSuggestionsLoading(true);
-      const response = await API.get("/users/suggestions");
-      setSuggestedUsers(response.data || []);
+      const data = await getUserSuggestions();
+      setSuggestedUsers(data || []);
     } catch (err) {
       console.error("Failed to fetch suggested users:", err);
       toast.error(getErrorMessage(err, "Failed to load suggestions."));
@@ -137,12 +146,12 @@ function useDashboard() {
       }
 
       try {
-        const response = await API.get("/me");
+        const data = await getMe();
 
         if (!isMounted) return;
 
-        setUser(response.data);
-        localStorage.setItem("user", JSON.stringify(response.data));
+        setUser(data);
+        localStorage.setItem("user", JSON.stringify(data));
 
         // Fetch feed and suggestions in parallel
         await Promise.all([fetchPosts(1, true), fetchSuggestedUsers()]);
@@ -172,7 +181,7 @@ function useDashboard() {
   // Optimized Friend Request Handler
   const handleAddFriend = useCallback(async (userId) => {
     try {
-      await API.post(`/friends/request/${userId}`);
+      await sendFriendRequest(userId);
       toast.success("Friend request sent.");
 
       setSuggestedUsers((previousUsers) =>
@@ -217,7 +226,7 @@ function useDashboard() {
         formData.append("files", file);
       });
 
-      await API.post("/posts/", formData, {
+      await createPost(formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -238,7 +247,7 @@ function useDashboard() {
       const formData = new FormData();
       formData.append("original_post_id", postId);
 
-      await API.post("/posts/", formData, {
+      await createPost(formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -262,7 +271,7 @@ function useDashboard() {
     }
 
     try {
-      await API.delete(`/posts/${postId}`);
+      await deletePost(postId);
       toast.success("Post deleted successfully.");
       await refreshFeed();
     } catch (err) {
@@ -284,7 +293,7 @@ function useDashboard() {
     }
 
     try {
-      await API.patch(`/posts/${postId}/archive`);
+      await archivePost(postId);
       toast.success("Post archived successfully.");
       await refreshFeed();
     } catch (err) {
@@ -306,7 +315,7 @@ function useDashboard() {
     }
 
     try {
-      await API.patch(`/posts/${postId}/unarchive`);
+      await unarchivePost(postId);
       toast.success("Post restored successfully.");
       await refreshFeed();
     } catch (err) {
@@ -317,15 +326,15 @@ function useDashboard() {
 
   const handleLikePost = async (postId) => {
     try {
-      const response = await API.post(`/posts/${postId}/like`);
+      const data = await likePost(postId);
 
       setPosts((previousPosts) =>
         previousPosts.map((post) =>
           post.id === postId
             ? {
                 ...post,
-                likes_count: response.data?.likes_count ?? post.likes_count,
-                is_liked_by_me: response.data?.liked ?? !post.is_liked_by_me,
+                likes_count: data?.likes_count ?? post.likes_count,
+                is_liked_by_me: data?.liked ?? !post.is_liked_by_me,
               }
             : post
         )
@@ -383,13 +392,13 @@ function useDashboard() {
         formData.append("removed_media_ids", id);
       });
 
-      const response = await API.put(`/posts/${postId}`, formData, {
+      const data = await updatePost(postId, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      const updatedPost = response.data;
+      const updatedPost = data;
 
       setPosts((previousPosts) =>
         previousPosts.map((post) =>

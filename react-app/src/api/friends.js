@@ -68,3 +68,11 @@ export const removeFriend = async (userId) => {
 
   return response.data;
 };
+
+
+// Get friendship status with another user
+export const getFriendshipStatus = async (userId) => {
+  const response = await API.get(`/friends/status/${userId}`);
+
+  return response.data;
+};

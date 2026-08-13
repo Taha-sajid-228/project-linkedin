@@ -9,7 +9,7 @@ import os
 
 from database import get_db
 from models import User
-from auth import create_access_token
+from routes.auth import create_access_token
 
 load_dotenv()
 

@@ -14,7 +14,7 @@ from typing import Optional, List
 from database import get_db
 from models import Post, User, PostMedia, Like, Comment, Follow
 from schemas import PostResponse, UserResponse, FeedResponse
-from auth import get_current_user
+from routes.auth import get_current_user
 from services.s3_service import upload_file_to_s3
 
 router = APIRouter(prefix="/posts", tags=["Posts"])

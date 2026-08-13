@@ -2,8 +2,33 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
-import API from "../api/axios";
-import PostCard from "../components/PostCard";
+import {
+  getMe,
+  updateProfilePicture,
+  updateBio,
+} from "../api/auth";
+import {
+  getUserProfile,
+} from "../api/users";
+import {
+  getMyPosts,
+  getUserPosts,
+  createPost,
+  updatePost,
+  deletePost,
+  archivePost,
+  unarchivePost,
+  likePost,
+} from "../api/posts";
+import {
+  sendFriendRequest,
+  cancelFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  removeFriend,
+  getFriendshipStatus,
+} from "../api/friends";
+import PostCard from "../features/posts/PostCard";
 import ProfileHeader from "../features/profile/ProfileHeader";
 
 function Profile() {
@@ -51,35 +76,33 @@ function Profile() {
     try {
       setLoading(true);
 
-      const meRes = await API.get("/me");
-      setCurrentUser(meRes.data);
-      localStorage.setItem("user", JSON.stringify(meRes.data));
+      const meData = await getMe();
+      setCurrentUser(meData);
+      localStorage.setItem("user", JSON.stringify(meData));
 
       const profileUserId = isMyProfile
-        ? meRes.data.id
+        ? meData.id
         : Number(userId);
 
-      const userResponse = isMyProfile
-        ? meRes
-        : await API.get(`/users/${userId}`);
+      const userData = isMyProfile
+        ? meData
+        : await getUserProfile(userId);
 
-      const postsResponse = isMyProfile
-        ? await API.get("/posts/my-posts")
-        : await API.get(`/posts/user/${userId}`);
+      const postsData = isMyProfile
+        ? await getMyPosts()
+        : await getUserPosts(userId);
 
-      setUser(userResponse.data);
-      setBio(userResponse.data.bio || "");
-      setOriginalBio(userResponse.data.bio || "");
-      setFriendsCount(userResponse.data.friends_count || 0);
-      setMyPosts(postsResponse.data);
+      setUser(userData);
+      setBio(userData.bio || "");
+      setOriginalBio(userData.bio || "");
+      setFriendsCount(userData.friends_count || 0);
+      setMyPosts(postsData);
 
       if (!isMyProfile) {
-        const friendshipResponse = await API.get(
-          `/friends/status/${profileUserId}`
-        );
+        const friendshipData = await getFriendshipStatus(profileUserId);
 
-        setFriendStatus(friendshipResponse.data.status);
-        setFriendshipId(friendshipResponse.data.friendship_id ?? null);
+        setFriendStatus(friendshipData.status);
+        setFriendshipId(friendshipData.friendship_id ?? null);
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
@@ -101,12 +124,12 @@ function Profile() {
     try {
       setFriendLoading(true);
 
-      const response = await API.post(`/friends/request/${userId}`);
+      const data = await sendFriendRequest(userId);
 
-      toast.success(response.data.message || "Friend request sent.");
+      toast.success(data.message || "Friend request sent.");
 
       setFriendStatus("pending_sent");
-      setFriendshipId(response.data.friendship_id ?? null);
+      setFriendshipId(data.friendship_id ?? null);
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to send friend request.");
     } finally {
@@ -122,7 +145,7 @@ function Profile() {
     try {
       setFriendLoading(true);
 
-      await API.delete(`/friends/requests/${friendshipId}/cancel`);
+      await cancelFriendRequest(friendshipId);
 
       toast.success("Friend request cancelled.");
 
@@ -143,7 +166,7 @@ function Profile() {
     try {
       setFriendLoading(true);
 
-      await API.put(`/friends/requests/${friendshipId}/accept`);
+      await acceptFriendRequest(friendshipId);
 
       toast.success("Friend request accepted.");
 
@@ -164,7 +187,7 @@ function Profile() {
     try {
       setFriendLoading(true);
 
-      await API.put(`/friends/requests/${friendshipId}/reject`);
+      await rejectFriendRequest(friendshipId);
 
       toast.success("Friend request rejected.");
 
@@ -185,7 +208,7 @@ function Profile() {
     try {
       setFriendLoading(true);
 
-      await API.delete(`/friends/${userId}`);
+      await removeFriend(userId);
 
       toast.success("Friend removed.");
 
@@ -215,13 +238,13 @@ function Profile() {
     setUploadingPhoto(true);
 
     try {
-      const res = await API.put("/me/profile-picture", formData, {
+      const data = await updateProfilePicture(formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       setUser((prevUser) => ({
         ...prevUser,
-        profile_picture: res.data.profile_picture,
+        profile_picture: data.profile_picture,
       }));
       toast.success("Profile picture updated successfully.");
     } catch (error) {
@@ -244,15 +267,15 @@ function Profile() {
     formData.append("bio", bio);
 
     try {
-      const res = await API.put("/me/bio", formData, {
+      const data = await updateBio(formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       setUser((prev) => ({
         ...prev,
-        bio: res.data.bio,
+        bio: data.bio,
       }));
-      setOriginalBio(res.data.bio || "");
+      setOriginalBio(data.bio || "");
       setEditingBio(false);
       toast.success("Biography updated successfully.");
     } catch (error) {
@@ -281,7 +304,7 @@ function Profile() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await API.patch(`/posts/${postId}/unarchive`);
+          await unarchivePost(postId);
           toast.success("Post restored successfully.");
           await fetchProfileData();
         } catch (error) {
@@ -310,7 +333,7 @@ function Profile() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await API.patch(`/posts/${postId}/archive`);
+          await archivePost(postId);
           toast.success("Post archived successfully.");
           await fetchProfileData();
         } catch (error) {
@@ -339,7 +362,7 @@ function Profile() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await API.delete(`/posts/${postId}`);
+          await deletePost(postId);
           toast.success("Post deleted successfully.");
           await fetchProfileData();
         } catch (error) {
@@ -351,15 +374,15 @@ function Profile() {
 
   const handleLikePost = async (postId) => {
     try {
-      const response = await API.post(`/posts/${postId}/like`);
+      const data = await likePost(postId);
 
       setMyPosts((previousPosts) =>
         previousPosts.map((post) =>
           post.id === postId
             ? {
                 ...post,
-                likes_count: response.data.likes_count,
-                is_liked_by_me: response.data.liked,
+                likes_count: data.likes_count,
+                is_liked_by_me: data.liked,
               }
             : post
         )
@@ -375,7 +398,7 @@ function Profile() {
       const formData = new FormData();
       formData.append("original_post_id", postId);
 
-      await API.post("/posts/", formData, {
+      await createPost(formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -414,7 +437,7 @@ function Profile() {
 
     try {
       setIsSaving(true);
-      await API.put(`/posts/${postId}`, { content: editContent.trim() });
+      await updatePost(postId, { content: editContent.trim() });
 
       toast.success("Post updated successfully.");
       setEditingPostId(null);

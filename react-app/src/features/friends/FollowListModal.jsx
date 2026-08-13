@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import API from "../api/axios";
+import { getFollowers, getFollowing } from "../../api/users";
 
 function FollowListModal({
   userId,
@@ -27,18 +27,13 @@ function FollowListModal({
           setLoading(true);
         }
 
-        const response = await API.get(
-          `/users/${userId}/${type}`,
-          {
-            params: {
-              limit,
-              offset: currentOffset,
-            },
-          }
-        );
+        const data =
+          type === "followers"
+            ? await getFollowers(userId, { limit, offset: currentOffset })
+            : await getFollowing(userId, { limit, offset: currentOffset });
 
         const receivedUsers =
-          response.data.users || [];
+          data.users || [];
 
         setUsers((previousUsers) =>
           append
@@ -46,7 +41,7 @@ function FollowListModal({
             : receivedUsers
         );
 
-        setHasMore(response.data.has_more);
+        setHasMore(data.has_more);
         setOffset(
           currentOffset + receivedUsers.length
         );

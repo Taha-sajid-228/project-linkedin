@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import API from "../api/axios";
+import { forgotPassword } from "../api/auth";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -38,10 +38,10 @@ function ForgotPassword() {
       const formData = new FormData();
       formData.append("email", email.trim());
 
-      const response = await API.post("/forgot-password", formData);
+      const data = await forgotPassword(formData);
 
       setIsError(false);
-      setMessage(response.data.message || "OTP sent successfully.");
+      setMessage(data.message || "OTP sent successfully.");
       setSeconds(60);
 
       setTimeout(() => {

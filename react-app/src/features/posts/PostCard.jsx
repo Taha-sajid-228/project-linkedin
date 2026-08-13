@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-
 import EditPost from "./EditPost";
 import PostMedia from "./PostMedia";
 import PostActions from "./PostActions";
@@ -10,10 +9,10 @@ function PostCard({
   editingPostId,
   editContent,
   setEditContent,
-  removedMediaIds,
-  setRemovedMediaIds,
-  selectedFiles,
-  setSelectedFiles,
+  removedMediaIds = [],
+  setRemovedMediaIds = () => {},
+  selectedFiles = [],
+  setSelectedFiles = () => {},
   onStartEditing,
   onCancelEditing,
   onUpdatePost,
@@ -75,35 +74,27 @@ function PostCard({
     navigate(`/posts/${post.id}/likes`);
   };
 
-  const handleOpenPost = () => {
-    console.log("PostCard clicked");
-    console.log("parent onOpenPost:", onOpenPost);
-
-    if (onOpenPost) {
-      console.log("Sending post to Dashboard");
-      onOpenPost(post);
+  const handleCardClick = (e) => {
+    if (!onOpenPost || editingPostId === post.id) {
+      return;
     }
+
+    const interactiveElement = e.target.closest(
+      "button, a, input, textarea, select, label, svg"
+    );
+
+    if (interactiveElement) {
+      return;
+    }
+
+    onOpenPost(post);
   };
 
   return (
     <article
-      className={
-        isModal
-          ? "relative bg-white rounded-2xl shadow-xl w-full p-5 max-h-[90vh] overflow-y-auto"
-          : "bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm"
-      }
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs transition-all duration-300 hover:shadow-sm cursor-pointer"
     >
-      {isModal && (
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-colors cursor-pointer z-10"
-          aria-label="Close modal"
-        >
-          ✕
-        </button>
-      )}
-
       {isSharedPost && (
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 w-fit">
        <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -112,6 +103,7 @@ function PostCard({
   <path d="M7 21.9l-4-4 4-4" />
   <path d="M21 11.8v2a4 4 0 0 1-4 4H3" />
 </svg>
+
 
 
 
@@ -130,7 +122,7 @@ function PostCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4 pr-8">
+      <div className="flex items-center justify-between mb-4">
         <button
           type="button"
           onClick={goToAuthorProfile}
@@ -163,6 +155,11 @@ function PostCard({
                 ? new Date(post.created_at).toLocaleString()
                 : ""}
             </p>
+            {post.is_archived && (
+              <span className="inline-block mt-1 text-[9px] bg-yellow-50 text-yellow-600 border border-yellow-100 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">
+                Archived
+              </span>
+            )}
           </div>
         </button>
 
@@ -179,16 +176,16 @@ function PostCard({
             {post.is_archived ? (
               <button
                 type="button"
-                onClick={() => onUnarchivePost?.(post.id)}
-                className="bg-slate-50 border border-slate-150 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+                onClick={() => onUnarchivePost && onUnarchivePost(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-emerald-50 hover:text-emerald-650 hover:text-emerald-600 hover:border-emerald-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
               >
                 Restore
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => onArchivePost?.(post.id)}
-                className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+                onClick={() => onArchivePost && onArchivePost(post.id)}
+                className="bg-slate-50 border border-slate-150 hover:bg-yellow-50 hover:text-yellow-605 hover:text-yellow-600 hover:border-yellow-250 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
               >
                 Archive
               </button>
@@ -197,7 +194,7 @@ function PostCard({
             <button
               type="button"
               onClick={() => onDeletePost(post.id)}
-              className="bg-slate-50 border border-slate-150 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
+              className="bg-slate-50 border border-slate-150 hover:bg-red-50 hover:text-red-655 hover:text-red-600 hover:border-red-200 text-slate-500 px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95"
             >
               Delete
             </button>
@@ -221,12 +218,7 @@ function PostCard({
         />
       ) : (
         post.content && (
-          <p
-            onClick={handleOpenPost}
-            className={`text-sm text-slate-800 leading-relaxed mb-4 whitespace-pre-line font-medium ${
-              !isModal ? "cursor-pointer" : ""
-            }`}
-          >
+          <p className="text-sm text-slate-800 leading-relaxed mb-4 whitespace-pre-line font-medium">
             {post.content}
           </p>
         )
@@ -249,7 +241,7 @@ function PostCard({
                 className="h-8.5 w-8.5 rounded-xl object-cover border border-slate-100 transition-all duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-[10px] shadow-2xs transition-all duration-300 group-hover:scale-105">
+              <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 text-white font-bold flex items-center justify-center text-[10px] shadow-2xs transition-all duration-300 group-hover:scale-105">
                 {post.original_post?.author?.username
                   ?.substring(0, 2)
                   .toUpperCase() || "U"}
@@ -257,7 +249,7 @@ function PostCard({
             )}
 
             <div>
-              <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-650 transition-colors leading-tight">
                 {post.original_post?.author?.name ||
                   post.original_post?.author?.username ||
                   "Unknown User"}
@@ -275,28 +267,15 @@ function PostCard({
           </button>
 
           {post.original_post?.content && (
-            <p
-              onClick={handleOpenPost}
-              className={`text-sm text-slate-700 leading-relaxed mb-4 whitespace-pre-line font-medium ${
-                !isModal ? "cursor-pointer" : ""
-              }`}
-            >
+            <p className="text-sm text-slate-700 leading-relaxed mb-4 whitespace-pre-line font-medium">
               {post.original_post.content}
             </p>
           )}
 
-          <PostMedia
-            media={post.original_post?.media || []}
-            onOpenPost={() => handleOpenPost()}
-          />
+          <PostMedia media={post.original_post?.media || []} />
         </div>
       ) : (
-        editingPostId !== post.id && (
-          <PostMedia
-            media={post.media || []}
-            onOpenPost={() => handleOpenPost()}
-          />
-        )
+        <PostMedia media={post.media || []} />
       )}
 
       {/* Post statistics */}
@@ -304,14 +283,9 @@ function PostCard({
         <button
           type="button"
           onClick={handleOpenPostLikes}
-          className="flex items-center gap-1 cursor-pointer hover:text-rose-500 transition-colors"
+          className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
         >
-          <span className="text-sm leading-none">❤️</span>
-
-          <span>
-            {post.likes_count || 0}{" "}
-            {post.likes_count === 1 ? "Like" : "Likes"}
-          </span>
+          ❤️ {post.likes_count || 0} likes
         </button>
 
         <button
@@ -319,7 +293,7 @@ function PostCard({
           onClick={handleOpenPostComments}
           className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
         >
-          {post.comments_count || 0} Comments • {post.reshare_count || 0} Shares
+          {post.comments_count || 0} comments • {post.reshare_count || 0} shares
         </button>
       </div>
 

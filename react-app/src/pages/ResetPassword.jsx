@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import API from "../api/axios";
+import { resetPassword } from "../api/auth";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -48,15 +48,15 @@ function ResetPassword() {
     try {
       setLoading(true);
 
-      const data = new FormData();
-      data.append("email", formData.email.trim());
-      data.append("otp", formData.otp.trim());
-      data.append("new_password", formData.newPassword);
+      const payload = new FormData();
+      payload.append("email", formData.email.trim());
+      payload.append("otp", formData.otp.trim());
+      payload.append("new_password", formData.newPassword);
 
-      const response = await API.post("/reset-password", data);
+      const result = await resetPassword(payload);
 
       setIsError(false);
-      setMessage(response.data.message || "Password reset successful! Redirecting to login...");
+      setMessage(result.message || "Password reset successful! Redirecting to login...");
 
       setTimeout(() => {
         navigate("/login");

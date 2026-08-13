@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import API from "../api/axios";
+import { getPost, getPostLikes } from "../api/posts";
+import { getMe } from "../api/auth";
 import Loader from "../components/Loader";
 import ErrorMessage from "../components/ErrorMessage";
 
@@ -19,17 +20,17 @@ function LikesList() {
       setLoading(true);
       setError("");
 
-      const [postResponse, userResponse, likesResponse] = await Promise.all([
-        API.get(`/posts/${postId}`),
-        API.get("/me"),
-        API.get(`/posts/${postId}/likes`),
+      const [postData, userData, likesData] = await Promise.all([
+        getPost(postId),
+        getMe(),
+        getPostLikes(postId),
       ]);
 
-      setPost(postResponse.data);
-      setCurrentUser(userResponse.data);
-      setLikedUsers(likesResponse.data);
+      setPost(postData);
+      setCurrentUser(userData);
+      setLikedUsers(likesData);
 
-      localStorage.setItem("user", JSON.stringify(userResponse.data));
+      localStorage.setItem("user", JSON.stringify(userData));
     } catch (err) {
       console.error("Failed to load likes page details:", err);
       setError(

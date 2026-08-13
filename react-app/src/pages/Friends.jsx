@@ -13,7 +13,7 @@ import {
 } from "../api/friends";
 import { createConversation } from "../api/chat";
 import { showConfirmation } from "../utils/confirmDialog";
-import UserCard from "../components/UserCard";
+import UserCard from "../features/friends/UserCard";
 import EmptyState from "../components/EmptyState";
 
 

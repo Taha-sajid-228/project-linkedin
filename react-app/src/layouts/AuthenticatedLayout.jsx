@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DashboardNavbar from "../components/DashboardNavbar";
-import API from "../api/axios";
+import { getMe } from "../api/auth";
 import { showConfirmation } from "../utils/confirmDialog";
 
 function AuthenticatedLayout({ children }) {
@@ -24,10 +24,10 @@ function AuthenticatedLayout({ children }) {
       if (user) return;
 
       try {
-        const response = await API.get("/me");
+        const userData = await getMe();
         if (!isMounted) return;
-        setUser(response.data);
-        localStorage.setItem("user", JSON.stringify(response.data));
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
       } catch (err) {
         console.error("Failed to load current user in AuthenticatedLayout:", err);
         localStorage.removeItem("token");

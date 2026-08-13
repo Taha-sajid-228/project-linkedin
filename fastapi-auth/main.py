@@ -8,14 +8,14 @@ import os
 import traceback
 from datetime import datetime
 
-from posts import router as posts_router
-from comments import router as comments_router
-from auth import router as auth_router
+from routes.posts import router as posts_router
+from routes.comments import router as comments_router
+from routes.auth import router as auth_router
 from oauth import router as oauth_router
-from follows import router as follows_router
-from friends import router as friends_router
-from chat import router as chat_router
-from admin import router as admin_router
+from routes.follows import router as follows_router
+from routes.friends import router as friends_router
+from routes.chat import router as chat_router
+from routes.admin import router as admin_router
 from database import engine, Base
 from routes import users
 import models
@@ -114,8 +114,10 @@ async def global_exception_handler(
         )
     )
 
+    log_dir = "logs"
+    os.makedirs(log_dir, exist_ok=True)
     with open(
-        "error.log",
+        os.path.join(log_dir, "error.log"),
         "a",
         encoding="utf-8",
     ) as file:

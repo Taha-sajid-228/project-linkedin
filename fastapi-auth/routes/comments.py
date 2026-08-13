@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models import Post, Comment, User
 from schemas import CommentCreate, CommentUpdate, CommentResponse
-from auth import get_current_user
+from routes.auth import get_current_user
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 

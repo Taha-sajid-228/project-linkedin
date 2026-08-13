@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import API from "../api/axios";
+import { login } from "../api/auth";
 
 function Login() {
   const navigate = useNavigate();
@@ -49,10 +49,10 @@ const handleGithubLogin = () => {
       loginData.append("email", formData.email);
       loginData.append("password", formData.password);
 
-      const response = await API.post("/login", loginData);
+      const data = await login(loginData);
 
-      const token = response.data.access_token;
-      const user = response.data.user;
+      const token = data.access_token;
+      const user = data.user;
 
       if (!token) {
         setIsError(true);

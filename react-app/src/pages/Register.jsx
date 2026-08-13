@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import API from "../api/axios";
+import { register } from "../api/auth";
 
 function Register() {
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ function Register() {
       registerData.append("email", formData.email.trim());
       registerData.append("password", formData.password);
 
-      await API.post("/register", registerData);
+      await register(registerData);
 
       setIsError(false);
       setMessage("OTP sent to your email!");

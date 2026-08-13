@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, aliased
 
 from database import get_db
 from models import Follow, Friendship, User
-from auth import get_current_user
+from routes.auth import get_current_user
 from schemas import (
     DiscoverUserResponse,
     DiscoverUsersResponse,

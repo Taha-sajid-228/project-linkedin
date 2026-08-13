@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import API from "../api/axios";
+import { getPostComments, createComment, deleteComment } from "../../api/comments";
 
 function Comments({
   postId,
@@ -18,9 +18,9 @@ function Comments({
       setCommentsLoading(true);
       setError("");
 
-      const res = await API.get(`/comments/posts/${postId}`);
+      const data = await getPostComments(postId);
 
-      setComments(res.data);
+      setComments(data);
     } catch (error) {
       console.error("Failed to fetch comments:", error);
 
@@ -45,12 +45,12 @@ function Comments({
     setError("");
 
     try {
-      const res = await API.post(`/comments/posts/${postId}`, {
+      const data = await createComment(postId, {
         content: content.trim(),
       });
 
       setComments((prevComments) => [
-        res.data,
+        data,
         ...prevComments,
       ]);
 
@@ -74,7 +74,7 @@ function Comments({
     try {
       setError("");
 
-      await API.delete(`/comments/${commentId}`);
+      await deleteComment(commentId);
 
       setComments((prevComments) =>
         prevComments.filter(

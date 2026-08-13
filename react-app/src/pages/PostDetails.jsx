@@ -12,13 +12,21 @@ import {
 
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
-import API from "../api/axios";
-
+import { getMe } from "../api/auth";
+import {
+  getPost,
+  getPostLikes,
+  likePost,
+  createPost,
+  updatePost,
+  deletePost,
+  archivePost,
+  unarchivePost,
+} from "../api/posts";
+import Comments from "../features/comments/Comments";
+import PostCard from "../features/posts/PostCard";
 import Loader from "../components/Loader";
 import ErrorMessage from "../components/ErrorMessage";
-import Comments from "../components/Comments";
-
-import PostCard from "../components/PostCard";
 
 function PostDetails() {
   const { postId } = useParams();
@@ -49,17 +57,17 @@ function PostDetails() {
       setLoading(true);
       setError("");
 
-      const [postResponse, userResponse] = await Promise.all([
-        API.get(`/posts/${postId}`),
-        API.get("/me"),
+      const [postData, userData] = await Promise.all([
+        getPost(postId),
+        getMe(),
       ]);
 
-      setPost(postResponse.data);
-      setUser(userResponse.data);
+      setPost(postData);
+      setUser(userData);
 
       localStorage.setItem(
         "user",
-        JSON.stringify(userResponse.data)
+        JSON.stringify(userData)
       );
     } catch (error) {
       console.error("Failed to load post details:", error);
@@ -78,11 +86,9 @@ function PostDetails() {
       setLikesLoading(true);
       setLikesError("");
 
-      const response = await API.get(
-        `/posts/${postId}/likes`
-      );
+      const data = await getPostLikes(postId);
 
-      setLikedUsers(response.data);
+      setLikedUsers(data);
     } catch (error) {
       console.error("Failed to load likes:", error);
 
@@ -107,14 +113,12 @@ function PostDetails() {
 
   const handleLikePost = async (selectedPostId) => {
     try {
-      const response = await API.post(
-        `/posts/${selectedPostId}/like`
-      );
+      const data = await likePost(selectedPostId);
 
       setPost((previousPost) => ({
         ...previousPost,
-        likes_count: response.data.likes_count,
-        is_liked_by_me: response.data.liked,
+        likes_count: data.likes_count,
+        is_liked_by_me: data.liked,
       }));
 
       if (selectedView === "likes") {
@@ -138,7 +142,7 @@ function PostDetails() {
         selectedPostId
       );
 
-      await API.post("/posts/", formData, {
+      await createPost(formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -179,15 +183,15 @@ function PostDetails() {
 
     try {
       setIsSaving(true);
-      const response = await API.put(
-        `/posts/${selectedPostId}`,
+      const data = await updatePost(
+        selectedPostId,
         {
           content: editContent.trim(),
         }
       );
 
       toast.success("Post updated successfully.");
-      setPost(response.data);
+      setPost(data);
       setEditingPostId(null);
       setEditContent("");
       setOriginalContent("");
@@ -221,7 +225,7 @@ function PostDetails() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await API.delete(`/posts/${selectedPostId}`);
+          await deletePost(selectedPostId);
           toast.success("Post deleted successfully.");
           navigate("/dashboard");
         } catch (error) {
@@ -254,7 +258,7 @@ function PostDetails() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await API.patch(`/posts/${selectedPostId}/archive`);
+          await archivePost(selectedPostId);
           toast.success("Post archived successfully.");
           navigate("/dashboard");
         } catch (error) {
@@ -287,9 +291,9 @@ function PostDetails() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await API.patch(`/posts/${selectedPostId}/unarchive`);
+          const data = await unarchivePost(selectedPostId);
           toast.success("Post restored successfully.");
-          setPost(response.data);
+          setPost(data);
         } catch (error) {
           console.error("Failed to restore post:", error);
           toast.error(

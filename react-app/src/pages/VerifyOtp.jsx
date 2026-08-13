@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import API from "../api/axios";
+import { verifyOtp, resendOtp } from "../api/auth";
 
 function VerifyOtp() {
   const [params] = useSearchParams();
@@ -87,7 +87,7 @@ function VerifyOtp() {
       otpData.append("email", email.trim());
       otpData.append("otp", otp.trim());
 
-      await API.post("/verify-otp", otpData);
+      await verifyOtp(otpData);
 
       localStorage.removeItem(getStorageKey(email));
 
@@ -123,7 +123,7 @@ function VerifyOtp() {
       const resendData = new FormData();
       resendData.append("email", email.trim());
 
-      await API.post("/resend-otp", resendData);
+      await resendOtp(resendData);
 
       setIsError(false);
       setMessage("A new OTP has been sent to your email.");

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import API from "../api/axios";
 import { showConfirmation } from "../utils/confirmDialog";
-import UserCard from "../components/UserCard";
+import UserCard from "../features/friends/UserCard";
+import { discoverUsers, followUser, unfollowUser } from "../api/users";
 import EmptyState from "../components/EmptyState";
 import SearchInput from "../components/SearchInput";
 
@@ -92,15 +92,13 @@ function DiscoverUsers() {
           setLoading(true);
         }
 
-        const response = await API.get("/users", {
-          params: {
-            limit,
-            offset: currentOffset,
-            search: search || undefined,
-          },
+        const data = await discoverUsers({
+          limit,
+          offset: currentOffset,
+          search: search || undefined,
         });
 
-        const receivedUsers = response.data?.users || [];
+        const receivedUsers = data?.users || [];
 
         setUsers((previousUsers) =>
           append ? [...previousUsers, ...receivedUsers] : receivedUsers
@@ -108,7 +106,7 @@ function DiscoverUsers() {
 
         setOffset(currentOffset + receivedUsers.length);
 
-        setHasMore(Boolean(response.data?.has_more));
+        setHasMore(Boolean(data?.has_more));
       } catch (error) {
         console.error(
           "Failed to load users:",
@@ -194,9 +192,7 @@ function DiscoverUsers() {
     try {
       setFollowLoadingId(userId);
 
-      const response = await API.post(
-        `/users/${userId}/follow`
-      );
+      const data = await followUser(userId);
 
       setUsers((previousUsers) =>
         previousUsers.map((user) =>
@@ -204,13 +200,13 @@ function DiscoverUsers() {
             ? {
                 ...user,
                 is_following:
-                  response.data?.is_following ??
+                  data?.is_following ??
                   true,
 
                 follows_you: user.follows_you,
 
                 followers_count:
-                  response.data?.followers_count ??
+                  data?.followers_count ??
                   (user.followers_count || 0) + 1,
               }
             : user
@@ -218,7 +214,7 @@ function DiscoverUsers() {
       );
 
       toast.success(
-        response.data?.message ||
+        data?.message ||
           "User followed successfully."
       );
     } catch (error) {
@@ -256,9 +252,7 @@ function DiscoverUsers() {
     try {
       setFollowLoadingId(userId);
 
-      const response = await API.delete(
-        `/users/${userId}/follow`
-      );
+      const data = await unfollowUser(userId);
 
       setUsers((previousUsers) =>
         previousUsers.map((user) =>
@@ -266,11 +260,11 @@ function DiscoverUsers() {
             ? {
                 ...user,
                 is_following:
-                  response.data?.is_following ??
+                  data?.is_following ??
                   false,
 
                 followers_count:
-                  response.data?.followers_count ??
+                  data?.followers_count ??
                   Math.max(
                     0,
                     (user.followers_count || 0) - 1
@@ -281,7 +275,7 @@ function DiscoverUsers() {
       );
 
       toast.success(
-        response.data?.message ||
+        data?.message ||
           "User unfollowed successfully."
       );
     } catch (error) {

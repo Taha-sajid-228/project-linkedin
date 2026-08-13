@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../api/axios";
+import { getPendingOauthUser, completeOauthRegistration } from "../api/auth";
 
 function SignupSetup() {
   const navigate = useNavigate();
@@ -19,10 +19,10 @@ function SignupSetup() {
 
   const fetchPendingUser = async () => {
     try {
-      const response = await API.get("/auth/pending-oauth-user");
+      const data = await getPendingOauthUser();
 
-      setEmail(response.data.email || "");
-      setName(response.data.suggested_name || "");
+      setEmail(data.email || "");
+      setName(data.suggested_name || "");
     } catch (error) {
       navigate("/register");
     }
@@ -50,14 +50,11 @@ function SignupSetup() {
       formData.append("name", name.trim());
       formData.append("username", username.trim());
 
-      const response = await API.post(
-        "/auth/oauth-complete-registration",
-        formData
-      );
+      const data = await completeOauthRegistration(formData);
 
       localStorage.setItem(
         "token",
-        response.data.access_token
+        data.access_token
       );
 
       navigate("/dashboard");

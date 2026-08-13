@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 
-import API from "../api/axios";
+import { getMe } from "../api/auth";
+import {
+  getAdminPosts,
+  archiveAdminPost,
+  unarchiveAdminPost,
+  deleteAdminPost,
+} from "../api/admin";
 import AdminLayout from "../layouts/AdminLayout";
 import ActionButton from "../components/ActionButton";
 import { PostStatusBadge } from "../components/StatusBadges";
@@ -35,8 +41,8 @@ function AdminPosts() {
 
   const fetchCurrentAdmin = useCallback(async () => {
     try {
-      const response = await API.get("/me");
-      setAdmin(response.data);
+      const adminData = await getMe();
+      setAdmin(adminData);
     } catch (requestError) {
       console.error(
         "Failed to load current admin:",
@@ -64,13 +70,11 @@ function AdminPosts() {
         params.status = statusFilter;
       }
 
-      const response = await API.get("/admin/posts", {
-        params,
-      });
+      const data = await getAdminPosts(params);
 
-      setPosts(response.data.posts || []);
-      setTotal(response.data.total || 0);
-      setHasMore(Boolean(response.data.has_more));
+      setPosts(data.posts || []);
+      setTotal(data.total || 0);
+      setHasMore(Boolean(data.has_more));
     } catch (requestError) {
       console.error(
         "Failed to load admin posts:",
@@ -166,12 +170,10 @@ function AdminPosts() {
     try {
       setActionPostId(post.id);
 
-      const response = await API.patch(
-        `/admin/posts/${post.id}/archive`
-      );
+      const data = await archiveAdminPost(post.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "Post archived successfully."
       );
 
@@ -210,12 +212,10 @@ function AdminPosts() {
     try {
       setActionPostId(post.id);
 
-      const response = await API.patch(
-        `/admin/posts/${post.id}/unarchive`
-      );
+      const data = await unarchiveAdminPost(post.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "Post unarchived successfully."
       );
 
@@ -260,12 +260,10 @@ function AdminPosts() {
     try {
       setActionPostId(post.id);
 
-      const response = await API.delete(
-        `/admin/posts/${post.id}`
-      );
+      const data = await deleteAdminPost(post.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "Post deleted successfully."
       );
 

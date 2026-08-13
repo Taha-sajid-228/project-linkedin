@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
-from auth import get_current_user
+from routes.auth import get_current_user
 from database import get_db
 from models import Friendship, User
 from schemas import (

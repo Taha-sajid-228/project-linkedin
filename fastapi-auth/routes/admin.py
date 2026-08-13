@@ -10,7 +10,7 @@ from fastapi import (
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
-from auth import get_admin_user
+from routes.auth import get_admin_user
 from database import get_db
 from models import User, Post, Like, Comment
 from schemas import (

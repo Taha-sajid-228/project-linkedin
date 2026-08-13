@@ -6,7 +6,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import API from "../api/axios";
+import { getMe } from "../api/auth";
+import { getAdminStats } from "../api/admin";
 import AdminLayout from "../layouts/AdminLayout";
 
 
@@ -34,14 +35,12 @@ function AdminDashboard() {
         setError("");
 
         const [
-          userResponse,
-          statsResponse,
+          currentUser,
+          statsData,
         ] = await Promise.all([
-          API.get("/me"),
-          API.get("/admin/stats"),
+          getMe(),
+          getAdminStats(),
         ]);
-
-        const currentUser = userResponse.data;
 
         if (currentUser.role !== "admin") {
           navigate("/dashboard", {
@@ -52,7 +51,7 @@ function AdminDashboard() {
         }
 
         setUser(currentUser);
-        setStats(statsResponse.data);
+        setStats(statsData);
 
         setLastUpdated(
           new Date().toLocaleTimeString("en-US", {

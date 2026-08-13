@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, aliased, selectinload
 
-from auth import (
+from routes.auth import (
     ALGORITHM,
     SECRET_KEY,
     get_current_user,

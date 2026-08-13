@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 
-import API from "../api/axios";
+import { getMe } from "../api/auth";
+import {
+  getAdminUsers,
+  blockUser,
+  unblockUser,
+  deleteUser,
+} from "../api/admin";
 import AdminLayout from "../layouts/AdminLayout";
 import ActionButton from "../components/ActionButton";
 import { RoleBadge, UserStatusBadge } from "../components/StatusBadges";
@@ -35,8 +41,8 @@ function AdminUsers() {
 
   const fetchCurrentAdmin = useCallback(async () => {
     try {
-      const response = await API.get("/me");
-      setAdmin(response.data);
+      const adminData = await getMe();
+      setAdmin(adminData);
     } catch (requestError) {
       console.error(
         "Failed to load current admin:",
@@ -64,13 +70,11 @@ function AdminUsers() {
         params.status = statusFilter;
       }
 
-      const response = await API.get("/admin/users", {
-        params,
-      });
+      const data = await getAdminUsers(params);
 
-      setUsers(response.data.users || []);
-      setTotal(response.data.total || 0);
-      setHasMore(Boolean(response.data.has_more));
+      setUsers(data.users || []);
+      setTotal(data.total || 0);
+      setHasMore(Boolean(data.has_more));
     } catch (requestError) {
       console.error(
         "Failed to load admin users:",
@@ -165,12 +169,10 @@ function AdminUsers() {
     try {
       setActionUserId(user.id);
 
-      const response = await API.patch(
-        `/admin/users/${user.id}/block`
-      );
+      const data = await blockUser(user.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "User blocked successfully."
       );
 
@@ -209,12 +211,10 @@ function AdminUsers() {
     try {
       setActionUserId(user.id);
 
-      const response = await API.patch(
-        `/admin/users/${user.id}/unblock`
-      );
+      const data = await unblockUser(user.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "User unblocked successfully."
       );
 
@@ -258,12 +258,10 @@ function AdminUsers() {
     try {
       setActionUserId(user.id);
 
-      const response = await API.delete(
-        `/admin/users/${user.id}`
-      );
+      const data = await deleteUser(user.id);
 
       toast.success(
-        response.data.message ||
+        data.message ||
         "User deleted successfully."
       );
 

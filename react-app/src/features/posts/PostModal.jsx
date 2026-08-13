@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import PostCard from "../../components/PostCard";
+import PostCard from "./PostCard";
 
 function PostModal({
   post,

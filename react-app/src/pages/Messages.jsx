@@ -18,7 +18,7 @@ import {
 
 import useChatSocket from "../hooks/useChatSocket";
 // Navbar is provided by AuthenticatedLayout for authenticated pages
-import API from "../api/axios";
+import { getMe } from "../api/auth";
 
 
 const formatMessageTime = (dateValue) => {
@@ -341,16 +341,16 @@ function Messages() {
         setUserLoading(true);
         setUserError("");
 
-        const response = await API.get("/me");
+        const userData = await getMe();
 
         if (!isMounted) {
           return;
         }
 
-        setUser(response.data);
+        setUser(userData);
         localStorage.setItem(
           "user",
-          JSON.stringify(response.data)
+          JSON.stringify(userData)
         );
       } catch (requestError) {
         console.error(
